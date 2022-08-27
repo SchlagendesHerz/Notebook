@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">Notebook</string>
+    <string name="category_add">ADD NEW CATEGORY</string>
+    <string name="token_refresh_uri">https://api.dropboxapi.com/oauth2/token?refresh_token=%s&amp;grant_type=refresh_token&amp;client_id=%s&amp;client_secret=%s</string>
+
+</resources>
