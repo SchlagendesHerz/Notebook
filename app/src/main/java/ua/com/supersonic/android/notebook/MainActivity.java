@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Predicate;
 
 import ua.com.supersonic.android.notebook.db.DBConstants;
 import ua.com.supersonic.android.notebook.db.DBManager;
@@ -63,11 +64,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Spinner mCategorySpinner;
     private DBManager mDBManager;
     private DbxClientV2 mDropboxClient;
+    private DropboxTokenHolder mDropboxTokenHolder;
     private EditText mNewCategoryEt;
     private FloatingActionButton mRemoveBt;
     private ArrayAdapter<String> mSpinnerAdapter;
     private Toast mToast;
-    private DropboxTokenHolder mDropboxTokenHolder;
 
     private String generateSqliteDBPath(String dbName) {
         return String.format(SQLITE_DB_FILEPATH_FORMAT_STRING, getPackageName(), dbName);
@@ -101,27 +102,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.bt_action_remove:
                 String toDelete = mSpinnerAdapter.getItem(mCategorySpinner.getSelectedItemPosition());
-//                Log.d(TAG, "toDelete = " + toDelete);
                 mDBManager.deleteFromDB(toDelete);
                 refreshSpinner();
                 break;
             case R.id.bt_export_db:
                 unsetOnClick(R.id.bt_export_db);
-                new InitDropboxTask(InitDropboxTask.UPLOAD_ON_POST, R.id.bt_export_db).execute();
+                performDropboxExportTask();
+                setOnClick(R.id.bt_export_db);
                 break;
             case R.id.bt_import_db:
                 unsetOnClick(R.id.bt_import_db);
-                InitDropboxTask initTask = new InitDropboxTask(InitDropboxTask.DOWNLOAD_ON_POST, R.id.bt_import_db);
-                initTask.execute();
-                try {
-                    initTask.get();
-//                    setOnClick(R.id.bt_import_db);
-                } catch (ExecutionException | InterruptedException e) {
-                    showToastMessage("ERROR OCCURRED: " + e.getMessage());
-                }
+                performDropboxImportTask();
+                refreshSpinner();
+                setOnClick(R.id.bt_import_db);
                 break;
         }
-
     }
 
     @Override
@@ -192,6 +187,109 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
+    private boolean performDropboxCheck() {
+        String toastMessage;
+        if (!mainInstance.isConnected()) {
+            toastMessage = "NO INTERNET CONNECTION";
+            mainInstance.showToastMessage(toastMessage);
+            return false;
+        }
+        if (mDropboxTokenHolder == null) {
+            mDropboxTokenHolder = DropboxTokenHolder.getInstance(mainInstance.getApplicationContext());
+        }
+        if (!mDropboxTokenHolder.isTokenValid()) {
+            try {
+                performTokenRefreshTask();
+            } catch (ExecutionException | InterruptedException | RuntimeException e) {
+                toastMessage = "EXCEPTION OCCURRED " + e.getMessage();
+                mainInstance.showToastMessage(toastMessage);
+                return false;
+            }
+        } else if (mDropboxClient == null) {
+            DbxRequestConfig config = DbxRequestConfig.newBuilder("dropbox/app_notebook").build();
+            mDropboxClient = new DbxClientV2(config, mainInstance.mDropboxTokenHolder.getShortTermToken());
+        }
+        return true;
+    }
+
+    private void performDropboxExportTask() {
+        boolean isDropboxReady = performDropboxCheck();
+        if (isDropboxReady) {
+            Predicate<String[]> dropboxExportPredicate = (args) -> {
+                File fromFile = new File(args[0]);
+
+                try (
+                        InputStream in = new FileInputStream(fromFile)
+                ) {
+                    MainActivity.mainInstance.mDropboxClient.files().uploadBuilder("/" + args[1])
+                            .withMode(WriteMode.OVERWRITE)
+                            .uploadAndFinish(in);
+                    return true;
+                } catch (IOException | DbxException e) {
+                    throw new RuntimeException(e);
+                }
+            };
+            boolean isExportSucceed = performPredicateTask(dropboxExportPredicate, mainInstance.generateSqliteDBPath(DBConstants.DB_NAME), DBConstants.DB_NAME);
+            mainInstance.showToastMessage("EXPORT TASK IS " + String.valueOf(isExportSucceed).toUpperCase());
+        }
+    }
+
+    private void performDropboxImportTask() {
+        boolean isDropboxReady = performDropboxCheck();
+        if (isDropboxReady) {
+            Predicate<String[]> dropboxImportPredicate = (args) -> {
+                File toFile = new File(args[1]);
+                try (
+                        OutputStream outStream = new FileOutputStream(toFile, false)
+                ) {
+                    mainInstance.mDropboxClient.files()
+                            .downloadBuilder("/" + args[0]).download(outStream);
+                    return true;
+                } catch (IOException | DbxException e) {
+                    throw new RuntimeException(e);
+                }
+            };
+            boolean isImportSucceed = performPredicateTask(dropboxImportPredicate, DBConstants.DB_NAME, mainInstance.generateSqliteDBPath(DBConstants.DB_NAME));
+            mainInstance.showToastMessage("IMPORT TASK IS " + String.valueOf(isImportSucceed).toUpperCase());
+        }
+    }
+
+    private boolean performPredicateTask(Predicate<String[]> action, String... args) {
+        String toastMessage;
+        boolean isTaskSucceed;
+
+        PredicateTask toDoTask = new PredicateTask(action);
+        toDoTask.execute(args);
+        try {
+            isTaskSucceed = toDoTask.get();
+            toastMessage = toDoTask.getErrorMessage();
+        } catch (ExecutionException | InterruptedException e) {
+            toastMessage = "EXCEPTION OCCURRED " + e.getMessage();
+            isTaskSucceed = false;
+        }
+        if (toastMessage != null) {
+            mainInstance.showToastMessage(toastMessage);
+        }
+        return isTaskSucceed;
+    }
+
+    private void performTokenRefreshTask() throws ExecutionException, InterruptedException {
+        Predicate<String[]> refreshTokenPredicate = (args) -> {
+            try {
+                mDropboxTokenHolder.refreshToken();
+                return true;
+            } catch (IOException | JSONException e) {
+                throw new RuntimeException(e);
+            }
+        };
+        boolean isRefreshSucceed = performPredicateTask(refreshTokenPredicate);
+        if (isRefreshSucceed) {
+            mDropboxTokenHolder.persistToken(getApplicationContext());
+            DbxRequestConfig config = DbxRequestConfig.newBuilder("dropbox/app_notebook").build();
+            mDropboxClient = new DbxClientV2(config, mainInstance.mDropboxTokenHolder.getShortTermToken());
+        }
+    }
+
     private void refreshSpinner() {
         mSpinnerAdapter.clear();
         mSpinnerAdapter.addAll(loadCategories());
@@ -212,182 +310,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         findViewById(id).setOnClickListener(null);
     }
 
-    public static class DownloadTask extends AsyncTask<String, Void, Void> {
+    public static class PredicateTask extends AsyncTask<String, Void, Boolean> {
 
+        private final Predicate<String[]> action;
         private String errorMessage;
 
-        @Override
-        protected Void doInBackground(String... strings) {
-
-            if (errorMessage != null) {
-                return null;
-            }
-
-            File toFile = new File(strings[1]);
-            try (
-                    OutputStream outStream = new FileOutputStream(toFile, false)
-            ) {
-                mainInstance.mDropboxClient.files()
-                        .downloadBuilder("/" + strings[0]).download(outStream);
-            } catch (IOException | DbxException e) {
-                errorMessage = "EXCEPTION OCCURRED: " + e.getMessage();
-            }
-            return null;
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-//            mainInstance.showToastMessage("mDropboxClient = " + mainInstance.mDropboxClient);
-            if (!mainInstance.isConnected()) {
-                errorMessage = "NO INTERNET CONNECTION";
-                return;
-            }
-
-//            if (mainInstance.mDropboxClient == null) {
-//                Log.d(TAG, "Checking mDropboxClient for null");
-//                try {
-//                    new InitDropboxTask().execute().get();
-////                    wait(1000);
-//                } catch (ExecutionException | InterruptedException e) {
-//                    errorMessage = "EXCEPTION OCCURRED: " + e.getMessage();
-//                }
-//            }
-            mainInstance.mDBManager.closeDB();
-        }
-
-        @Override
-        protected void onPostExecute(Void unused) {
-            super.onPostExecute(unused);
-            if (!mainInstance.mDBManager.isOpened()) mainInstance.mDBManager.openDB();
-            if (errorMessage == null) {
-                mainInstance.refreshSpinner();
-            }
-            mainInstance.setOnClick(R.id.bt_import_db);
-            mainInstance.showToastMessage(errorMessage != null ? errorMessage : "DOWNLOAD TASK FINISHED");
-//            Log.i(TAG, "DOWNLOAD TASK FINISHED");
-        }
-
-    }
-
-    public static class InitDropboxTask extends AsyncTask<Void, Void, Void> {
-        public static final int NOTHING_ON_POST = 0;
-        public static final int DOWNLOAD_ON_POST = 1;
-        public static final int UPLOAD_ON_POST = 2;
-
-        private final int onPost;
-        private final int viewId;
-        private String errorMessage;
-        private boolean isRefreshed;
-
-        public InitDropboxTask(int onPost, int viewId) {
+        public PredicateTask(Predicate<String[]> action) {
             super();
-            this.onPost = onPost;
-            this.viewId = viewId;
+            this.action = action;
         }
 
         @Override
-        protected Void doInBackground(Void... voids) {
-            if (errorMessage != null) return null;
-            if (!mainInstance.mDropboxTokenHolder.isTokenValid()) {
-                try {
-                    mainInstance.mDropboxTokenHolder.refreshToken();
-                    isRefreshed = true;
-                } catch (IOException | JSONException e) {
-                    errorMessage = "EXCEPTION OCCURRED: " + e.getMessage();
-                }
+        protected Boolean doInBackground(String... args) {
+            try {
+                return action.test(args);
+            } catch (Exception e) {
+                errorMessage = "EXCEPTION OCCURRED " + e.getMessage();
+                return false;
             }
-            return null;
         }
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            if (!mainInstance.isConnected()) {
-                errorMessage = "NO INTERNET CONNECTION";
-                return;
-            }
-            if (mainInstance.mDropboxTokenHolder == null)
-                mainInstance.mDropboxTokenHolder = DropboxTokenHolder.getInstance(mainInstance.getApplicationContext());
-        }
-
-        @Override
-        protected void onPostExecute(Void unused) {
-            super.onPostExecute(unused);
-            mainInstance.showToastMessage(errorMessage != null ? errorMessage : "DROPBOX INIT TASK FINISHED");
-            if (errorMessage == null) {
-                if (isRefreshed) {
-                    mainInstance.mDropboxTokenHolder.persistToken(MainActivity.mainInstance.getApplicationContext());
-                    DbxRequestConfig config = DbxRequestConfig.newBuilder("dropbox/app_notebook").build();
-                    mainInstance.mDropboxClient = new DbxClientV2(config, mainInstance.mDropboxTokenHolder.getShortTermToken());
-                    mainInstance.showToastMessage("DOWNLOAD EXECUTED WHILE INIT DROPBOX");
-                } else if (mainInstance.mDropboxClient == null) {
-                    DbxRequestConfig config = DbxRequestConfig.newBuilder("dropbox/app_notebook").build();
-                    mainInstance.mDropboxClient = new DbxClientV2(config, mainInstance.mDropboxTokenHolder.getShortTermToken());
-                }
-                switch (onPost) {
-                    case DOWNLOAD_ON_POST:
-                        new DownloadTask().execute(DBConstants.DB_NAME, mainInstance.generateSqliteDBPath(DBConstants.DB_NAME));
-                        break;
-                    case UPLOAD_ON_POST:
-                        new UploadTask().execute(mainInstance.generateSqliteDBPath(DBConstants.DB_NAME), DBConstants.DB_NAME);
-                        break;
-                    default:
-                }
-            }
-            mainInstance.setOnClick(viewId);
+        public String getErrorMessage() {
+            return errorMessage;
         }
     }
-
-    public static class UploadTask extends AsyncTask<String, Void, FileMetadata> {
-
-        private String errorMessage;
-
-        @Override
-        protected FileMetadata doInBackground(String... strings) {
-
-            if (errorMessage != null) {
-                return null;
-            }
-            File fromFile = new File(strings[0]);
-
-            try (
-                    InputStream in = new FileInputStream(fromFile)
-            ) {
-                return MainActivity.mainInstance.mDropboxClient.files().uploadBuilder("/" + strings[1])
-                        .withMode(WriteMode.OVERWRITE)
-                        .uploadAndFinish(in);
-            } catch (IOException | DbxException e) {
-                errorMessage = "EXCEPTION OCCURRED: " + e;
-//                Log.e(TAG, e.toString());
-            }
-            return null;
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            if (!MainActivity.mainInstance.isConnected()) {
-                errorMessage = "NO INTERNET CONNECTION";
-                return;
-            }
-//            if (mainInstance.mDropboxClient == null) {
-//                try {
-//                    new InitDropboxTask().execute().get();
-//                } catch (ExecutionException | InterruptedException e) {
-//                    errorMessage = "EXCEPTION OCCURRED: " + e.getMessage();
-//                }
-//            }
-        }
-
-        @Override
-        protected void onPostExecute(FileMetadata fileMetadata) {
-            super.onPostExecute(fileMetadata);
-            mainInstance.setOnClick(R.id.bt_export_db);
-            mainInstance.showToastMessage(errorMessage != null ? errorMessage : "UPLOAD TASK FINISHED");
-//            Log.i(TAG, "UPLOAD TASK FINISHED");
-        }
-
-    }
-
 }
