@@ -26,13 +26,13 @@ public class DBManager {
     public void insertToDB(String category) {
         ContentValues values = new ContentValues();
         values.put(DBConstants.COLUMN_NAME, category);
-        mDB.insert(DBConstants.TABLE_CATEGORIES_NAME, null, values);
+        mDB.insert(DBConstants.TABLE_CATEGORIES, null, values);
     }
 
     public List<String> readFromDB() {
         List<String> read = new ArrayList<>();
         Cursor cursor = mDB.query(
-                DBConstants.TABLE_CATEGORIES_NAME,   // The table to query
+                DBConstants.TABLE_CATEGORIES,   // The table to query
                 null,             // The array of columns to return (pass null to get all)
                 null,              // The columns for the WHERE clause
                 null,          // The values for the WHERE clause
@@ -51,7 +51,7 @@ public class DBManager {
 
     public void deleteFromDB(String... toDelete) {
         String selection = DBConstants.DELETE_ROW_SELECTION;
-        mDB.delete(DBConstants.TABLE_CATEGORIES_NAME, selection, toDelete);
+        mDB.delete(DBConstants.TABLE_CATEGORIES, selection, toDelete);
     }
 
     public void closeDB() {
