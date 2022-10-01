@@ -11,13 +11,29 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 import ua.com.supersonic.android.notebook.MainActivity;
+import ua.com.supersonic.android.notebook.db.DBManager;
 
 public class DropboxExperiments {
 
     public static void main(String[] args) {
-        DbxRequestConfig config = DbxRequestConfig.newBuilder("dropbox/app_notebook").build();
+        List<Long> times = new ArrayList<>();
+        times.add(1665255600000L);
+        times.add(1665342000000L);
+        times.add(1665860400000L);
+        times.add(1665946800000L);
+        times.add(1666033200000L);
+        times.add(1666378800000L);
+        Date curDate = new Date();
+        for (Long curLong : times) {
+            curDate.setTime(curLong);
+            System.out.println(DBManager.getDBDateFormat().format(curDate));
+        }
+/*        DbxRequestConfig config = DbxRequestConfig.newBuilder("dropbox/app_notebook").build();
         DbxClientV2 client = new DbxClientV2(config, "");
         FullAccount account = null;
         try {
@@ -38,7 +54,7 @@ public class DropboxExperiments {
             }
         } catch (DbxException e) {
             e.printStackTrace();
-        }
+        }*/
 
 //        try (InputStream in = new FileInputStream(createTempFile())) {
 //            FileMetadata metadata = client.files()

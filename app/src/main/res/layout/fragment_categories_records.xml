@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="@dimen/root_container_padding"
+        android:clickable="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true">
+
+    <LinearLayout
+            android:id="@+id/top_bts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:paddingBottom="16dp">
+
+        <Button
+                android:id="@+id/bt_list_all"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/bt_list_all"
+                android:layout_marginEnd="8dp" />
+
+        <Button
+                android:id="@+id/bt_add"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/bt_add"
+                android:layout_marginEnd="8dp" />
+
+        <Button
+                android:id="@+id/bt_find"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/bt_find" />
+
+    </LinearLayout>
+
+    <LinearLayout
+            android:id="@+id/widgets_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/top_bts">
+
+        <Spinner
+                android:id="@+id/spinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
+
+        <LinearLayout
+                android:id="@+id/et_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/spinner">
+
+            <EditText
+                    android:id="@+id/et_new_find"
+                    android:layout_height="wrap_content"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:inputType="text|textNoSuggestions"
+                    android:maxLines="1"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/top_bts" />
+
+            <Button
+                    android:id="@+id/bt_clear"
+                    android:layout_height="42dp"
+                    android:layout_width="42dp"
+                    android:background="@drawable/et_delete" />
+
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+            android:id="@+id/date_selector_start"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/top_bts"
+            android:visibility="gone">
+
+        <!--        <TextView-->
+        <!--                android:layout_width="wrap_content"-->
+        <!--                android:layout_height="wrap_content"-->
+        <!--                android:text="FROM:"-->
+        <!--                android:textStyle="bold"-->
+        <!--                android:textSize="18sp"-->
+        <!--                android:layout_marginEnd="24dp"-->
+        <!--                />-->
+
+        <CheckBox
+                android:id="@+id/checkbox_dom_start"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:button="@null"
+                android:background="?android:attr/listChoiceIndicatorMultiple" />
+
+        <Spinner
+                android:id="@+id/spinner_dom_start"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+
+        <CheckBox
+                android:id="@+id/checkbox_month_start"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:button="@null"
+                android:background="?android:attr/listChoiceIndicatorMultiple" />
+
+        <Spinner
+                android:id="@+id/spinner_month_start"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+
+        <CheckBox
+                android:id="@+id/checkbox_year_start"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:button="@null"
+                android:background="?android:attr/listChoiceIndicatorMultiple" />
+
+        <Spinner
+                android:id="@+id/spinner_year_start"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+
+
+    </LinearLayout>
+
+
+    <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/widgets_container"
+            android:orientation="vertical"
+
+            >
+
+        <ListView
+                android:id="@+id/lv"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:drawSelectorOnTop="true"
+                android:layout_marginBottom="128dp"
+
+                />
+
+    </LinearLayout>
+
+
+    <LinearLayout
+            android:id="@+id/bottom_bts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+        <Button
+                android:id="@+id/bt_rem"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/bt_rem"
+                android:layout_marginEnd="8dp" />
+
+        <Button
+                android:id="@+id/bt_edit"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/bt_edit"
+                android:layout_marginEnd="8dp" />
+
+        <Button
+                android:id="@+id/bt_show_records"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/bt_show_record" />
+
+    </LinearLayout>
+
+    <TextView
+            android:id="@+id/tv_message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/widgets_container"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:textStyle="bold" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

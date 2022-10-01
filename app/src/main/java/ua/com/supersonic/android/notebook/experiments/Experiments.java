@@ -13,15 +13,32 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+
+import ua.com.supersonic.android.notebook.db.DBManager;
 
 public class Experiments {
     public static void main(String[] args) throws IOException {
-        String uriString = "https://www.dropbox.com/s/u2bhfjd6da7uard/1.txt?raw=1";
-        String uriString1 = "https://www.dropbox.com/s/u2bhfjd6da7uard/1.txt?raw=2";
+//        String uriString = "https://www.dropbox.com/s/u2bhfjd6da7uard/1.txt?raw=1";
+//        String uriString1 = "https://www.dropbox.com/s/u2bhfjd6da7uard/1.txt?raw=2";
 
 //        System.out.println(readFromUri(uriString1));
-        writeToUri(uriString1);
+//        writeToUri(uriString1);
+        List<Long> times = new ArrayList<>();
+        times.add(1665255600000L);
+        times.add(1665342000000L);
+        times.add(1665860400000L);
+        times.add(1665946800000L);
+        times.add(1666033200000L);
+        times.add(1666378800000L);
+        Date curDate = new Date();
+        for (Long curLong : times) {
+            curDate.setTime(curLong);
+            System.out.println(DBManager.getDBDateFormat().format(curDate));
+        }
 
     }
 
