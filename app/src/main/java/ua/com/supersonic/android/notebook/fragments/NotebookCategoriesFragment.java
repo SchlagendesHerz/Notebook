@@ -211,7 +211,7 @@ public class NotebookCategoriesFragment extends Fragment implements View.OnClick
                 int curCategoryId = getCurrentCategory().getId();
                 NotebookRecordsFragment recordsFragment = MainActivity.recordsFragment;
                 recordsFragment.setCurCategoryId(curCategoryId);
-                recordsFragment.showRecordList();
+//                recordsFragment.showRecordList();
                 break;
         }
     }
@@ -335,7 +335,7 @@ public class NotebookCategoriesFragment extends Fragment implements View.OnClick
         mRootContainer.findViewById(R.id.bt_edit).setOnClickListener(this);
         mRootContainer.findViewById(R.id.bt_show_records).setOnClickListener(this);
 
-        mEtAEFCategory = mRootContainer.findViewById(R.id.et_new_find);
+        mEtAEFCategory = mRootContainer.findViewById(R.id.et_add_edit_find);
         mEtContainer = mRootContainer.findViewById(R.id.widgets_container);
 
         mLvCategories = mRootContainer.findViewById(R.id.lv);

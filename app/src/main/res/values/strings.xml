@@ -27,6 +27,7 @@
     <string name="invalid_date_field_message">INVALID DATE</string>
     <string name="invalid_amount_field_message">INVALID AMOUNT</string>
     <string name="invalid_category_name_message">INVALID CATEGORY NAME</string>
+    <string name="invalid_time_period_message">INVALID TIME PERIOD</string>
 
     <string name="tv_rec_quant_message">%d rec</string>
     <string name="tv_last_rec_ago_prefix">last: </string>
@@ -38,6 +39,14 @@
 
     <string name="dialog_box_msg_dropbox_download">Perform database download from Dropbox account?\n (This can cause local data loss)</string>
     <string name="dialog_box_msg_dropbox_upload">Perform database upload to Dropbox account?\n (This can cause remote data loss)</string>
+
+    <string name="tv_start_date">From date: </string>
+    <string name="tv_end_date">Till date: </string>
+
+    <string name="start_date_picker_dialog_title">From date: </string>
+    <string name="start_time_picker_dialog_title">From time: </string>
+    <string name="end_date_picker_dialog_title">Till date: </string>
+    <string name="end_time_picker_dialog_title">Till time: </string>
 
 
 </resources>

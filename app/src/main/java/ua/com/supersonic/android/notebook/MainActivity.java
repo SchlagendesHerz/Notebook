@@ -7,7 +7,12 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.SpannableStringBuilder;
+import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.LinearLayout;
@@ -21,6 +26,7 @@ import com.google.android.material.tabs.TabLayout;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 
 import ua.com.supersonic.android.notebook.adapters.NotebookPagerAdapter;
 import ua.com.supersonic.android.notebook.db.DBManager;
@@ -30,6 +36,7 @@ import ua.com.supersonic.android.notebook.widgets.NonSwipeableViewPager;
 
 public class MainActivity extends AppCompatActivity {
     public static final String PREFERENCE_FILE_KEY = "pref_file_key";
+    public static final String APP_LOCALE = "en";
     private static final String TAG = MainActivity.class.getSimpleName().toUpperCase();
 
     public static MainActivity mainInstance;
@@ -136,6 +143,10 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("ClickableViewAccessibility")
     private void init() {
+        /*Editable editable = new SpannableStringBuilder("abc");
+        editable.replace(0, 0, "o");
+        Log.d("MAINACTIVITY", "editable = " + editable);*/
+        setLocale(APP_LOCALE);
         DBManager.getInstance().openDB();
         mPagerAdapter = new NotebookPagerAdapter(getSupportFragmentManager());
         mViewPager = findViewById(R.id.view_pager);
@@ -148,6 +159,15 @@ public class MainActivity extends AppCompatActivity {
 //            DropboxDBSynchronizer.getInstance().performDropboxImportTask();
 //            isDropboxImportPerformed = true;
 //        }
+    }
+
+    private void setLocale(String languageCode) {
+        Locale locale = new Locale(languageCode);
+        Locale.setDefault(locale);
+        Resources resources = getResources();
+        Configuration config = resources.getConfiguration();
+        config.setLocale(locale);
+        resources.updateConfiguration(config, resources.getDisplayMetrics());
     }
 
     @SuppressLint("ClickableViewAccessibility")

@@ -23,30 +23,27 @@ import java.util.Locale;
 import ua.com.supersonic.android.notebook.MainActivity;
 import ua.com.supersonic.android.notebook.NotebookRecord;
 import ua.com.supersonic.android.notebook.R;
+import ua.com.supersonic.android.notebook.utils.Utils;
 
 public class RecordAdapter extends ArrayAdapter<NotebookRecord> {
     private static final String AGO_FORMAT_PATTERN_D = "%dd ago";
     private static final String AGO_FORMAT_PATTERN_HM = "%dh; %dm ago";
     private static final String AGO_FORMAT_PATTERN_MOD = "%dm; %dd ago";
     private static final String AGO_FORMAT_PATTERN_YMD = "%dy;%dm;%dd ago";
-    private static final String DATE_FORMAT_PATTERN = "MMM d, yyyy";
-    private static final String TIME_FORMAT_PATTERN = "E h:mm a";
-
-    private static SimpleDateFormat recordItemFormat;
 
     public static String formatAgo(Date input) {
         DateTime start = new DateTime(input);
         DateTime end = new DateTime(Calendar.getInstance().getTime());
 
 //        Period period = new Period(start, end, PeriodType.yearMonthDay());
-        DurationFieldType[] periodType = new DurationFieldType[5];
-        periodType[0] = DurationFieldType.years();
-        periodType[1] = DurationFieldType.months();
-        periodType[2] = DurationFieldType.days();
-        periodType[3] = DurationFieldType.hours();
-        periodType[4] = DurationFieldType.minutes();
+        DurationFieldType[] durFields = new DurationFieldType[5];
+        durFields[0] = DurationFieldType.years();
+        durFields[1] = DurationFieldType.months();
+        durFields[2] = DurationFieldType.days();
+        durFields[3] = DurationFieldType.hours();
+        durFields[4] = DurationFieldType.minutes();
 
-        Period period = new Period(start, end, PeriodType.forFields(periodType));
+        Period period = new Period(start, end, PeriodType.forFields(durFields));
 
         int years = period.getYears();
         int months = period.getMonths();
@@ -73,24 +70,6 @@ public class RecordAdapter extends ArrayAdapter<NotebookRecord> {
                 : String.format(Locale.US, AGO_FORMAT_PATTERN_D, days)
                 : String.format(Locale.US, AGO_FORMAT_PATTERN_MOD, months, days)
                 : String.format(Locale.US, AGO_FORMAT_PATTERN_YMD, years, months, days);
-    }
-
-    private static SimpleDateFormat getRecordItemDateFormat() {
-        if (recordItemFormat == null) {
-            recordItemFormat = new SimpleDateFormat(DATE_FORMAT_PATTERN, Locale.US);
-        } else {
-            recordItemFormat.applyPattern(DATE_FORMAT_PATTERN);
-        }
-        return recordItemFormat;
-    }
-
-    private static SimpleDateFormat getRecordItemTimeFormat() {
-        if (recordItemFormat == null) {
-            recordItemFormat = new SimpleDateFormat(TIME_FORMAT_PATTERN, Locale.US);
-        } else {
-            recordItemFormat.applyPattern(TIME_FORMAT_PATTERN);
-        }
-        return recordItemFormat;
     }
 
     public RecordAdapter() {
@@ -141,12 +120,10 @@ public class RecordAdapter extends ArrayAdapter<NotebookRecord> {
     }
 
     private String formatDate(Date date) {
-        return getRecordItemDateFormat().format(date);
+        return Utils.getDateFormatInstance(Utils.FormatType.RECORD_ITEM_DATE).format(date);
     }
 
     private String formatTime(Date date) {
-//        Locale curLocale = MainActivity.mainInstance.getResources().getConfiguration().locale;
-
-        return getRecordItemTimeFormat().format(date);
+        return Utils.getDateFormatInstance(Utils.FormatType.RECORD_ITEM_TIME).format(date);
     }
 }

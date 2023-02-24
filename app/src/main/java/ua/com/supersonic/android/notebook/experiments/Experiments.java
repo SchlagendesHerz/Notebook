@@ -1,9 +1,13 @@
 package ua.com.supersonic.android.notebook.experiments;
 
+import android.text.*;
+/*
+import android.text.Editable;
+import android.text.SpannableStringBuilder;
+*/
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -12,34 +16,51 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
-
-import ua.com.supersonic.android.notebook.db.DBManager;
+import java.util.GregorianCalendar;
+import java.util.TimeZone;
 
 public class Experiments {
     public static void main(String[] args) throws IOException {
+        TimeZone curTZ = TimeZone.getDefault();
+        System.out.println(curTZ.getOffset(new Date().getTime()));
+        System.out.println(curTZ.getRawOffset());
+
+
 //        String uriString = "https://www.dropbox.com/s/u2bhfjd6da7uard/1.txt?raw=1";
 //        String uriString1 = "https://www.dropbox.com/s/u2bhfjd6da7uard/1.txt?raw=2";
 
 //        System.out.println(readFromUri(uriString1));
 //        writeToUri(uriString1);
-        List<Long> times = new ArrayList<>();
-        times.add(1665255600000L);
-        times.add(1665342000000L);
-        times.add(1665860400000L);
-        times.add(1665946800000L);
-        times.add(1666033200000L);
-        times.add(1666378800000L);
-        Date curDate = new Date();
-        for (Long curLong : times) {
-            curDate.setTime(curLong);
-            System.out.println(DBManager.getDBDateFormat().format(curDate));
-        }
 
+/*
+        Editable editable = new SpannableStringBuilder();
+        editable.append("abc");
+        editable.replace(0, 0, "o");
+        System.out.println(editable);
+*/
+//        Date curDate = new Date();
+//        System.out.println(curDate);
+        /*DateFormat dateFormat = Utils.getDateFormatInstance(Utils.FormatType.DB_DATE_TIME);
+        System.out.println(dateFormat.format(curDate));
+        System.out.println("--------------");
+
+        Date transformedDate = getMonthStartOf(curDate);
+        System.out.println(dateFormat.format(curDate));
+        System.out.println(dateFormat.format(transformedDate));
+        System.out.println(dateFormat.format(curDate));*/
+
+    }
+
+    private static Date getMonthStartOf(Date inputDate) {
+        Calendar calendar = new GregorianCalendar();
+        calendar.setTime(inputDate);
+        calendar.set(Calendar.DAY_OF_MONTH, calendar.getActualMinimum(Calendar.DAY_OF_MONTH));
+        calendar.set(Calendar.HOUR_OF_DAY, calendar.getActualMinimum(Calendar.HOUR_OF_DAY));
+        calendar.set(Calendar.MINUTE, calendar.getActualMinimum(Calendar.MINUTE));
+        calendar.set(Calendar.SECOND, calendar.getActualMinimum(Calendar.SECOND));
+        return calendar.getTime();
     }
 
     private static StringBuilder readFromUri(String uriString) {

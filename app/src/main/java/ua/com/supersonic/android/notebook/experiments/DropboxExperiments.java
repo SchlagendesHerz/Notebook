@@ -1,5 +1,8 @@
 package ua.com.supersonic.android.notebook.experiments;
 
+import android.text.Editable;
+import android.text.SpannableStringBuilder;
+
 import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.v2.DbxClientV2;
@@ -17,10 +20,16 @@ import java.util.List;
 
 import ua.com.supersonic.android.notebook.MainActivity;
 import ua.com.supersonic.android.notebook.db.DBManager;
+import ua.com.supersonic.android.notebook.utils.Utils;
 
 public class DropboxExperiments {
 
     public static void main(String[] args) {
+        Editable editable = new SpannableStringBuilder("abc");
+        editable.replace(0, 0, "o");
+        System.out.println(editable);
+
+/*
         List<Long> times = new ArrayList<>();
         times.add(1665255600000L);
         times.add(1665342000000L);
@@ -31,8 +40,9 @@ public class DropboxExperiments {
         Date curDate = new Date();
         for (Long curLong : times) {
             curDate.setTime(curLong);
-            System.out.println(DBManager.getDBDateFormat().format(curDate));
+            System.out.println(Utils.getDateFormatInstance(Utils.FormatType.DB_DATE_TIME).format(curDate));
         }
+*/
 /*        DbxRequestConfig config = DbxRequestConfig.newBuilder("dropbox/app_notebook").build();
         DbxClientV2 client = new DbxClientV2(config, "");
         FullAccount account = null;

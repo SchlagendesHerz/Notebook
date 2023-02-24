@@ -3,6 +3,7 @@ package ua.com.supersonic.android.notebook.db;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 
@@ -21,7 +22,7 @@ public class DBHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase sqLiteDatabase) {
-//        Log.d("SQL", "onCreate INVOKED!");
+        Log.d("SQL", "onCreate INVOKED!");
         sqLiteDatabase.execSQL(DBConstants.CREATE_CATEGORY_TABLE);
         sqLiteDatabase.execSQL(DBConstants.CREATE_RECORDS_TABLE);
         sqLiteDatabase.execSQL(DBConstants.CREATE_TRIGGER_INC_AFTER_RECORD_INS);
@@ -33,6 +34,8 @@ public class DBHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int i, int i1) {
+        Log.d("SQL", "onUpgrade INVOKED!");
+
         sqLiteDatabase.execSQL(DBConstants.DELETE_CATEGORY_TABLE);
         sqLiteDatabase.execSQL(DBConstants.DELETE_RECORDS_TABLE);
         onCreate(sqLiteDatabase);
@@ -40,6 +43,8 @@ public class DBHelper extends SQLiteOpenHelper {
 
     @Override
     public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        Log.d("SQL", "onDowngrade INVOKED!");
+
         db.execSQL(DBConstants.DELETE_CATEGORY_TABLE);
         db.execSQL(DBConstants.DELETE_RECORDS_TABLE);
         onCreate(db);

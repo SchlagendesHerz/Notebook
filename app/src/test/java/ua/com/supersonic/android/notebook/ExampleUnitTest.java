@@ -4,6 +4,9 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
+import android.text.Editable;
+import android.text.SpannableStringBuilder;
+
 /**
  * Example local unit test, which will execute on the development machine (host).
  *
