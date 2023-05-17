@@ -1,6 +1,70 @@
 <resources>
     <string name="app_name">Notebook</string>
-    <string name="category_add">ADD NEW CATEGORY</string>
+    <string name="bt_list_all">LIST ALL</string>
+    <string name="bt_add">ADD</string>
+    <string name="bt_find">FIND</string>
+
+    <string name="tab_categories">CATEGORIES</string>
+    <string name="tab_records">RECORDS</string>
+
+    <string name="tv_message_list_empty">NO ITEMS FOUND</string>
+
+    <!--    <string name="category_add">ADD NEW CATEGORY</string>-->
+    <!--    <string name="category_show_all">SHOW ALL CATEGORIES</string>-->
+    <!--    <string name="category_find">FIND CATEGORIES</string>-->
+
+    <string name="bt_rem">REMOVE</string>
+    <string name="bt_edit">EDIT</string>
+    <string name="bt_show_record">RECORDS</string>
+
+    <string name="et_add_category_hint">ADD NEW CATEGORY</string>
+    <string name="et_find_category_hint">FIND CATEGORY</string>
+
+    <string name="record_field_date">DATE</string>
+    <string name="record_field_amount">AMOUNT</string>
+    <string name="record_field_descr">DESCRIPTION</string>
+
+    <string name="invalid_date_field_message">INVALID DATE</string>
+    <string name="invalid_amount_field_message">INVALID AMOUNT</string>
+    <string name="invalid_category_name_message">INVALID CATEGORY NAME</string>
+    <string name="invalid_time_period_message">INVALID TIME PERIOD</string>
+
+    <string name="tv_rec_quant_message">%d rec</string>
+    <string name="tv_last_rec_ago_prefix">last: </string>
+
     <string name="token_refresh_uri">https://api.dropboxapi.com/oauth2/token?refresh_token=%s&amp;grant_type=refresh_token&amp;client_id=%s&amp;client_secret=%s</string>
+
+    <string name="dialog_box_yes_bt">YES</string>
+    <string name="dialog_box_no_bt">NO</string>
+
+    <string name="dialog_box_msg_dropbox_download">Perform database download from Dropbox account?\n (This can cause local data loss)</string>
+    <string name="dialog_box_msg_dropbox_upload">Perform database upload to Dropbox account?\n (This can cause remote data loss)</string>
+
+    <string name="tv_start_date">From: </string>
+    <string name="tv_end_date">Till: </string>
+
+    <string name="start_date_picker_dialog_title">From date: </string>
+    <string name="start_time_picker_dialog_title">From time: </string>
+    <string name="end_date_picker_dialog_title">Till date: </string>
+    <string name="end_time_picker_dialog_title">Till time: </string>
+
+    <string name="tv_from_date_title">from date:</string>
+    <string name="tv_till_date_title">till date:</string>
+
+    <string name="tv_totals_title">totals</string>
+    <string name="tv_min_value">min value:</string>
+    <string name="tv_max_value">max value:</string>
+    <string name="tv_total_count">total items:</string>
+    <string name="tv_total_value">total value:</string>
+    <string name="tv_average_value">average value:</string>
+
+
+    <string name="tv_prev_top">prev</string>
+    <string name="ic_next_top">next</string>
+
+    <string name="tv_range_year">year</string>
+    <string name="tv_range_month">mon</string>
+    <string name="tv_range_week">week</string>
+    <string name="tv_range_day">day</string>
 
 </resources>

@@ -1,0 +1,512 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ua.com.supersonic.android.notebook.custom_views.SwipeableConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/categories_records_fragment_root_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="@dimen/root_container_padding"
+        android:clickable="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true">
+
+    <LinearLayout
+            android:id="@+id/top_bts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:paddingBottom="16dp">
+
+        <Button
+                android:id="@+id/bt_list_all"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/bt_list_all"
+                android:layout_marginEnd="8dp" />
+
+        <Button
+                android:id="@+id/bt_add"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/bt_add"
+                android:layout_marginEnd="8dp" />
+
+        <Button
+                android:id="@+id/bt_find"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/bt_find"
+                android:focusable="true"
+                android:clickable="true" />
+
+    </LinearLayout>
+
+    <LinearLayout
+            android:id="@+id/widgets_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/top_bts">
+
+        <Spinner
+                android:id="@+id/spinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
+
+        <LinearLayout
+                android:id="@+id/et_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/spinner">
+
+            <EditText
+                    android:id="@+id/et_add_edit_find"
+                    android:layout_height="wrap_content"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:inputType="text|textNoSuggestions"
+                    android:maxLines="1"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/top_bts" />
+
+            <Button
+                    android:id="@+id/bt_clear"
+                    android:layout_height="42dp"
+                    android:layout_width="42dp"
+                    android:background="@drawable/et_delete" />
+
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+            android:id="@+id/date_selector_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/widgets_container"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:visibility="gone"
+            android:focusable="true"
+            android:clickable="true"
+
+
+            android:gravity="center_horizontal">
+
+        <LinearLayout
+                android:id="@+id/prev_arrow_container"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_gravity="bottom|start"
+                android:visibility="gone"
+
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/date_selector_middle"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+
+                app:layout_constraintHorizontal_chainStyle="spread_inside">
+
+
+            <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_prev_arrow" />
+
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAllCaps="false"
+                    android:text="@string/tv_prev_top"
+                    android:textStyle="bold" />
+
+            <TextView
+                    android:id="@+id/tv_range_prev"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAllCaps="false"
+                    android:text="@string/tv_range_year"
+                    android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <LinearLayout
+                android:id="@+id/date_selector_middle"
+                android:layout_width="0dp"
+                android:layout_weight="5"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+
+                app:layout_constraintStart_toEndOf="@id/prev_arrow_container"
+                app:layout_constraintEnd_toStartOf="@id/next_arrow_container"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+
+                app:layout_constraintHorizontal_chainStyle="spread_inside">
+
+
+            <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+
+                    >
+
+                <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                    <TextView
+                            android:layout_height="wrap_content"
+                            android:layout_width="48dp"
+                            android:textColor="@color/category_text_color"
+                            android:text="@string/tv_start_date"
+                            android:textSize="18sp"
+                            android:fontFamily="sans-serif-medium"
+                            android:layout_gravity="center_vertical|start"
+
+                            />
+
+
+                    <EditText
+                            android:id="@+id/et_start_date"
+                            android:layout_height="wrap_content"
+                            android:layout_width="100dp"
+                            android:textSize="18sp"
+                            android:text="2022-11-13"
+
+                            android:gravity="center"
+                            android:inputType="textVisiblePassword|textNoSuggestions"
+                            tools:ignore="RtlSymmetry,TextFields" />
+
+
+                </LinearLayout>
+
+                <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+
+                    <TextView
+                            android:layout_height="wrap_content"
+                            android:layout_width="48dp"
+                            android:textColor="@color/category_text_color"
+                            android:text="@string/tv_end_date"
+                            android:textSize="18sp"
+                            android:fontFamily="sans-serif-medium"
+                            android:gravity="center_horizontal|end" />
+
+                    <EditText
+                            android:id="@+id/et_end_date"
+                            android:layout_height="wrap_content"
+                            android:layout_width="wrap_content"
+                            android:text="2022-11-13"
+                            android:gravity="center"
+                            tools:ignore="RtlSymmetry"
+                            android:inputType="textVisiblePassword|textNoSuggestions" />
+
+                </LinearLayout>
+            </LinearLayout>
+
+            <ImageButton
+                    android:id="@+id/bt_date_range_selector"
+                    android:layout_width="54dp"
+                    android:layout_height="54dp"
+                    android:src="@drawable/ic_calendar"
+                    android:background="@color/white"
+                    android:focusable="true"
+                    android:layout_gravity="center" />
+        </LinearLayout>
+
+        <LinearLayout
+                android:id="@+id/next_arrow_container"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_gravity="bottom|end"
+                android:gravity="bottom|end"
+                android:visibility="gone"
+
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toEndOf="@id/date_selector_middle"
+                app:layout_constraintEnd_toEndOf="parent"
+
+                app:layout_constraintHorizontal_chainStyle="spread_inside">
+
+
+            <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_next_arrow" />
+
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAllCaps="false"
+                    android:text="@string/ic_next_top"
+                    android:textStyle="bold" />
+
+            <TextView
+                    android:id="@+id/tv_range_next"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAllCaps="false"
+                    android:text="@string/tv_range_year"
+                    android:textStyle="bold" />
+
+        </LinearLayout>
+
+
+    </LinearLayout>
+
+    <TableLayout
+            android:id="@+id/totals_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/date_selector_container"
+            android:layout_marginTop="5dp"
+            android:visibility="gone">
+
+        <TableRow android:background="@color/btnsColor">
+
+            <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/tv_totals_title"
+                    android:fontFamily="sans-serif-medium"
+                    android:textSize="16sp"
+                    android:padding="5dp"
+                    android:textAllCaps="true"
+                    android:textColor="@color/white"
+                    android:gravity="center_horizontal" />
+
+        </TableRow>
+
+        <TableRow android:padding="2dp">
+
+            <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/tv_total_count"
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="@color/category_text_color"
+                    android:textSize="16sp"
+                    android:textAllCaps="true"
+                    android:layout_gravity="center"
+                    android:gravity="end"
+                    android:paddingEnd="7dp" />
+
+            <TextView
+                    android:id="@+id/tv_items_count"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="100"
+                    android:textStyle="bold"
+                    android:textColor="@color/black"
+                    android:textAllCaps="true" />
+        </TableRow>
+
+        <TableRow android:padding="2dp">
+
+            <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/tv_min_value"
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="@color/category_text_color"
+                    android:textSize="16sp"
+                    android:textAllCaps="true"
+                    android:layout_gravity="center"
+                    android:gravity="end"
+                    android:paddingEnd="7dp" />
+
+            <TextView
+                    android:id="@+id/tv_min_value"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="100"
+                    android:textStyle="bold"
+                    android:textColor="@color/black"
+                    android:textAllCaps="true" />
+        </TableRow>
+
+        <TableRow android:padding="2dp">
+
+            <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/tv_max_value"
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="@color/category_text_color"
+                    android:textSize="16sp"
+                    android:textAllCaps="true"
+                    android:layout_gravity="center"
+                    android:gravity="end"
+                    android:paddingEnd="7dp" />
+
+            <TextView
+                    android:id="@+id/tv_max_value"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="100"
+                    android:textStyle="bold"
+                    android:textColor="@color/black"
+                    android:textAllCaps="true" />
+        </TableRow>
+
+
+        <TableRow android:padding="2dp">
+
+            <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/tv_average_value"
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="@color/category_text_color"
+                    android:textAllCaps="true"
+                    android:textSize="16sp"
+
+                    android:layout_gravity="center"
+                    android:gravity="end"
+                    android:paddingEnd="7dp" />
+
+            <TextView
+                    android:id="@+id/tv_average_value"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="1256.22"
+                    android:textStyle="bold"
+                    android:textColor="@color/black"
+                    android:textAllCaps="true"
+
+                    />
+        </TableRow>
+
+        <TableRow android:padding="2dp">
+
+            <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/tv_total_value"
+                    android:textColor="@color/category_text_color"
+                    android:textSize="16sp"
+
+                    android:fontFamily="sans-serif-medium"
+                    android:textAllCaps="true"
+                    android:layout_gravity="center"
+                    android:gravity="end"
+                    android:paddingEnd="7dp" />
+
+            <TextView
+                    android:id="@+id/tv_total_value"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="@color/black"
+                    android:textStyle="bold"
+                    android:text="1156"
+                    android:textAllCaps="true" />
+        </TableRow>
+
+
+    </TableLayout>
+
+    <ListView
+            android:id="@+id/lv_items"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:drawSelectorOnTop="true"
+            app:layout_constraintTop_toBottomOf="@id/totals_container"
+
+
+            />
+
+
+    <LinearLayout
+            android:id="@+id/bottom_bts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="visible"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+        <Button
+                android:id="@+id/bt_rem"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/bt_rem"
+                android:layout_marginEnd="8dp" />
+
+        <Button
+                android:id="@+id/bt_edit"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/bt_edit"
+                android:layout_marginEnd="8dp" />
+
+        <Button
+                android:id="@+id/bt_show_records"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/bt_show_record" />
+
+    </LinearLayout>
+
+
+    <TextView
+            android:id="@+id/tv_message"
+            android:text="@string/tv_message_list_empty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/widgets_container"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+
+</ua.com.supersonic.android.notebook.custom_views.SwipeableConstraintLayout>

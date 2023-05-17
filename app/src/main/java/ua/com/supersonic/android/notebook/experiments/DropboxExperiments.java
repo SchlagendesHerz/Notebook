@@ -1,23 +1,35 @@
 package ua.com.supersonic.android.notebook.experiments;
 
-import com.dropbox.core.DbxException;
-import com.dropbox.core.DbxRequestConfig;
-import com.dropbox.core.v2.DbxClientV2;
-import com.dropbox.core.v2.files.ListFolderResult;
-import com.dropbox.core.v2.files.Metadata;
-import com.dropbox.core.v2.users.FullAccount;
+import android.text.Editable;
+import android.text.SpannableStringBuilder;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
-import ua.com.supersonic.android.notebook.MainActivity;
-
 public class DropboxExperiments {
 
     public static void main(String[] args) {
-        DbxRequestConfig config = DbxRequestConfig.newBuilder("dropbox/app_notebook").build();
+        Editable editable = new SpannableStringBuilder("abc");
+        editable.replace(0, 0, "o");
+        System.out.println(editable);
+
+/*
+        List<Long> times = new ArrayList<>();
+        times.add(1665255600000L);
+        times.add(1665342000000L);
+        times.add(1665860400000L);
+        times.add(1665946800000L);
+        times.add(1666033200000L);
+        times.add(1666378800000L);
+        Date curDate = new Date();
+        for (Long curLong : times) {
+            curDate.setTime(curLong);
+            System.out.println(Utils.getDateFormatInstance(Utils.FormatType.DB_DATE_TIME).format(curDate));
+        }
+*/
+/*        DbxRequestConfig config = DbxRequestConfig.newBuilder("dropbox/app_notebook").build();
         DbxClientV2 client = new DbxClientV2(config, "");
         FullAccount account = null;
         try {
@@ -38,7 +50,7 @@ public class DropboxExperiments {
             }
         } catch (DbxException e) {
             e.printStackTrace();
-        }
+        }*/
 
 //        try (InputStream in = new FileInputStream(createTempFile())) {
 //            FileMetadata metadata = client.files()
