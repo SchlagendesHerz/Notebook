@@ -7,14 +7,15 @@
 
     <TextView
             android:id="@+id/tv_ordinal"
-            android:layout_width="0dp"
+            android:layout_width="32dp"
             android:layout_height="36dp"
-            android:layout_weight="1"
             android:textColor="@color/category_text_color"
             android:textSize="16sp"
             android:fontFamily="sans-serif-medium"
             android:gravity="center|start"
-            android:layout_marginEnd="16dp" />
+            android:layout_marginEnd="4dp"
+            android:text="999."
+            />
 
     <TextView
             android:id="@+id/tv_title"

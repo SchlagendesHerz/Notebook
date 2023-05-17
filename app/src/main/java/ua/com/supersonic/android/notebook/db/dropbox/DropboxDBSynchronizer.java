@@ -2,6 +2,7 @@ package ua.com.supersonic.android.notebook.db.dropbox;
 
 import static android.content.Context.CONNECTIVITY_SERVICE;
 
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -25,7 +26,6 @@ import java.net.URL;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 
-import ua.com.supersonic.android.notebook.MainActivity;
 import ua.com.supersonic.android.notebook.db.DBConstants;
 import ua.com.supersonic.android.notebook.utils.Utils;
 
@@ -37,14 +37,17 @@ public class DropboxDBSynchronizer {
     private DbxClientV2 mDropboxClient;
     private DropboxTokenHolder mDropboxTokenHolder;
 
-    private DropboxDBSynchronizer() {
+    private Context appContext;
+
+    private DropboxDBSynchronizer(Context appContext) {
 //        this.mDropboxTokenHolder = new DropboxTokenHolder();
 //        this.mDropboxTokenHolder.initToken();
+        this.appContext = appContext;
     }
 
-    public static DropboxDBSynchronizer getInstance() {
+    public static DropboxDBSynchronizer getInstance(Context context) {
         if (instance == null) {
-            instance = new DropboxDBSynchronizer();
+            instance = new DropboxDBSynchronizer(context);
         }
         return instance;
     }
@@ -67,7 +70,7 @@ public class DropboxDBSynchronizer {
                 }
             };
             boolean isExportSucceed = performPredicateTask(dropboxExportPredicate, generateSqliteDBPath(DBConstants.DB_NAME), DBConstants.DB_NAME);
-            MainActivity.mainInstance.showToastMessage("EXPORT TASK IS " + String.valueOf(isExportSucceed).toUpperCase());
+            Utils.showToastMessage("EXPORT TASK IS " + String.valueOf(isExportSucceed).toUpperCase(), appContext);
         }
     }
 
@@ -87,16 +90,16 @@ public class DropboxDBSynchronizer {
                 }
             };
             boolean isImportSucceed = performPredicateTask(dropboxImportPredicate, DBConstants.DB_NAME, generateSqliteDBPath(DBConstants.DB_NAME));
-            MainActivity.mainInstance.showToastMessage("IMPORT TASK IS " + String.valueOf(isImportSucceed).toUpperCase());
+            Utils.showToastMessage("IMPORT TASK IS " + String.valueOf(isImportSucceed).toUpperCase(), appContext);
         }
     }
 
     private String generateSqliteDBPath(String dbName) {
-        return String.format(SQLITE_DB_FILEPATH_FORMAT_STRING, MainActivity.mainInstance.getPackageName(), dbName);
+        return String.format(SQLITE_DB_FILEPATH_FORMAT_STRING, appContext.getPackageName(), dbName);
     }
 
     private boolean isConnected() {
-        ConnectivityManager connectManager = (ConnectivityManager) MainActivity.mainInstance.getSystemService(CONNECTIVITY_SERVICE);
+        ConnectivityManager connectManager = (ConnectivityManager) appContext.getSystemService(CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connectManager.getActiveNetworkInfo();
         return networkInfo != null && networkInfo.isConnected();
     }
@@ -105,18 +108,18 @@ public class DropboxDBSynchronizer {
         String toastMessage;
         if (!isConnected()) {
             toastMessage = "NO INTERNET CONNECTION";
-            MainActivity.mainInstance.showToastMessage(toastMessage);
+            Utils.showToastMessage(toastMessage, appContext);
             return false;
         }
         if (mDropboxTokenHolder == null) {
-            mDropboxTokenHolder = new DropboxTokenHolder();
+            mDropboxTokenHolder = new DropboxTokenHolder(appContext);
         }
         if (!mDropboxTokenHolder.isTokenValid()) {
             try {
                 performTokenRefreshTask();
             } catch (ExecutionException | InterruptedException | RuntimeException e) {
                 toastMessage = "EXCEPTION OCCURRED " + e.getMessage();
-                MainActivity.mainInstance.showToastMessage(toastMessage);
+                Utils.showToastMessage(toastMessage, appContext);
                 return false;
             }
         } else if (mDropboxClient == null) {
@@ -140,7 +143,7 @@ public class DropboxDBSynchronizer {
             isTaskSucceed = false;
         }
         if (toastMessage != null) {
-            MainActivity.mainInstance.showToastMessage(toastMessage);
+            Utils.showToastMessage(toastMessage, appContext);
         }
         return isTaskSucceed;
     }
@@ -176,7 +179,10 @@ public class DropboxDBSynchronizer {
         private long expireTermEnd;
         private String shortTermToken;
 
-        private DropboxTokenHolder() {
+        private Context appContext;
+
+        private DropboxTokenHolder(Context appContext) {
+            this.appContext = appContext;
             initToken();
         }
 
@@ -185,7 +191,7 @@ public class DropboxDBSynchronizer {
         }
 
         void initToken() {
-            SharedPreferences sharedPref = MainActivity.mainInstance.getSharedPreferences();
+            SharedPreferences sharedPref = Utils.getSharedPreferences(appContext);
             shortTermToken = sharedPref.getString(ST_TOKEN_KEY, null);
             expireTermEnd = sharedPref.getLong(ST_TOKEN_END_KEY, -1);
         }
@@ -204,7 +210,7 @@ public class DropboxDBSynchronizer {
         }
 
         void persistToken() {
-            SharedPreferences sharedPref = MainActivity.mainInstance.getSharedPreferences();
+            SharedPreferences sharedPref = Utils.getSharedPreferences(appContext);
             sharedPref.edit()
                     .putString(ST_TOKEN_KEY, shortTermToken)
                     .putLong(ST_TOKEN_END_KEY, expireTermEnd)

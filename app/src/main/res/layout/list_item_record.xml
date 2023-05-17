@@ -8,32 +8,30 @@
 
     <TextView
             android:id="@+id/tv_ordinal"
-            android:layout_width="0dp"
+            android:layout_width="32dp"
             android:layout_height="@dimen/list_item_height"
             android:maxHeight="@dimen/list_item_height"
-            android:layout_weight="1"
             android:textColor="@color/category_text_color"
             android:textSize="16sp"
             android:fontFamily="sans-serif-medium"
             android:gravity="start|center"
             android:layout_marginEnd="@dimen/list_item_side_margin"
-            android:text="99."
+            android:text="999."
             />
 
     <TextView
             android:id="@+id/tv_amount"
-            android:layout_width="0dp"
+            android:layout_width="65dp"
             android:layout_height="wrap_content"
-            android:layout_weight="3"
-            android:textColor="@color/time_date_text_color"
+            android:textColor="@color/tv_time_date_text_color"
             android:textSize="14sp"
             android:fontFamily="sans-serif-medium"
             android:minLines="1"
             android:maxLines="2"
+            android:text="-99999.99"
             android:ellipsize="end"
             android:gravity="center|start"
-            android:layout_marginEnd="@dimen/list_item_side_margin"
-            />
+            android:layout_marginEnd="@dimen/list_item_side_margin" />
 
     <TextView
             android:id="@+id/tv_desc"
@@ -99,7 +97,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textSize="12sp"
-                    android:textColor="@color/time_date_text_color"
+                    android:textColor="@color/tv_time_date_text_color"
                     android:ellipsize="end"
                     android:minLines="1"
                     android:maxLines="1"
@@ -111,7 +109,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textSize="12sp"
-                    android:textColor="@color/time_date_text_color"
+                    android:textColor="@color/tv_time_date_text_color"
                     android:ellipsize="end"
                     android:minLines="1"
                     android:maxLines="1"
@@ -122,7 +120,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textSize="12sp"
-                    android:textColor="@color/time_date_text_color"
+                    android:textColor="@color/tv_time_date_text_color"
                     android:gravity="start"
                     android:ellipsize="end"
                     android:minLines="1"

@@ -2,18 +2,16 @@ package ua.com.supersonic.android.notebook.db;
 
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import java.text.DateFormat;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
-import ua.com.supersonic.android.notebook.MainActivity;
 import ua.com.supersonic.android.notebook.NotebookCategory;
 import ua.com.supersonic.android.notebook.NotebookRecord;
 import ua.com.supersonic.android.notebook.utils.Utils;
@@ -22,17 +20,17 @@ public class DBManager {
     private static final String DB_DATE_TIME_FORMAT_PATTERN = "yyyy-MM-dd HH:mm:ss";
     private static DBManager sDBManager;
 
-    public static DBManager getInstance() {
+    public static DBManager getInstance(Context appContext) {
         return sDBManager == null
-                ? sDBManager = new DBManager()
+                ? sDBManager = new DBManager(appContext)
                 : sDBManager;
     }
 
     private SQLiteDatabase mDB;
-    private DBHelper mDBHelper;
+    private final DBHelper mDBHelper;
 
-    private DBManager() {
-        this.mDBHelper = new DBHelper(MainActivity.mainInstance.getApplicationContext());
+    private DBManager(Context appContext) {
+        this.mDBHelper = new DBHelper(appContext);
     }
 
     public void addCategory(NotebookCategory... catsToAdd) {

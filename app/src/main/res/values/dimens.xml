@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="list_item_height">42dp</dimen>
-    <dimen name="list_item_side_margin">9dp</dimen>
+    <dimen name="list_item_side_margin">5dp</dimen>
     <dimen name="list_item_padding">16dp</dimen>
     <dimen name="root_container_padding">16dp</dimen>
 </resources>

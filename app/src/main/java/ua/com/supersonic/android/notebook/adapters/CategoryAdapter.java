@@ -1,5 +1,6 @@
 package ua.com.supersonic.android.notebook.adapters;
 
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,21 +10,20 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
-import ua.com.supersonic.android.notebook.MainActivity;
 import ua.com.supersonic.android.notebook.NotebookCategory;
-import ua.com.supersonic.android.notebook.NotebookRecord;
 import ua.com.supersonic.android.notebook.R;
-import ua.com.supersonic.android.notebook.db.DBManager;
+import ua.com.supersonic.android.notebook.utils.Utils;
 
 public class CategoryAdapter extends ArrayAdapter<NotebookCategory> {
 
-    public CategoryAdapter() {
-        super(MainActivity.mainInstance.getApplicationContext(), 0, new ArrayList<>());
+    private final List<Integer> mSelectedItems = new ArrayList<>();
 
+    public List<Integer> getSelectedItems() {
+        return mSelectedItems;
     }
 
-    public CategoryAdapter(List<NotebookCategory> objects) {
-        super(MainActivity.mainInstance.getApplicationContext(), 0, objects);
+    public CategoryAdapter(Context appContext) {
+        super(appContext, 0, new ArrayList<>());
     }
 
     @Override
@@ -46,7 +46,17 @@ public class CategoryAdapter extends ArrayAdapter<NotebookCategory> {
                 textView.setVisibility(View.GONE);
             } else {
                 textView.setVisibility(View.VISIBLE);
-                textView.setText(String.format("%s %s", getContext().getString(R.string.tv_last_rec_ago_prefix), RecordAdapter.formatAgo(category.getLastRecordDate())));
+                textView.setText(String.format("%s %s", getContext().getString(R.string.tv_last_rec_ago_prefix), Utils.formatAgoDate(category.getLastRecordDate())));
+            }
+
+            if (mSelectedItems.contains(position)) {
+                convertView.setBackgroundColor(getContext().getColor(R.color.list_item_selected));
+                ((TextView) (convertView.findViewById(R.id.tv_rec_quant))).setTextColor(getContext().getColor(R.color.white));
+                ((TextView) (convertView.findViewById(R.id.tv_last_rec_ago))).setTextColor(getContext().getColor(R.color.white));
+            } else {
+                convertView.setBackgroundColor(getContext().getColor(R.color.white));
+                ((TextView) (convertView.findViewById(R.id.tv_rec_quant))).setTextColor(getContext().getColor(R.color.tv_rec_quant_color));
+                ((TextView) (convertView.findViewById(R.id.tv_last_rec_ago))).setTextColor(getContext().getColor(R.color.tv_last_rec_ago_color));
             }
 
 //            ViewGroup background = convertView.findViewById(R.id.text_container);

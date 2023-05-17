@@ -1,23 +1,13 @@
 package ua.com.supersonic.android.notebook;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
-import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.SpannableStringBuilder;
-import android.util.Log;
-import android.view.View;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.LinearLayout;
-import android.widget.ListView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager.widget.ViewPager;
@@ -30,61 +20,17 @@ import java.util.Locale;
 
 import ua.com.supersonic.android.notebook.adapters.NotebookPagerAdapter;
 import ua.com.supersonic.android.notebook.db.DBManager;
-import ua.com.supersonic.android.notebook.fragments.NotebookCategoriesFragment;
-import ua.com.supersonic.android.notebook.fragments.NotebookRecordsFragment;
-import ua.com.supersonic.android.notebook.widgets.NonSwipeableViewPager;
 
 public class MainActivity extends AppCompatActivity {
     public static final String PREFERENCE_FILE_KEY = "pref_file_key";
     public static final String APP_LOCALE = "en";
     private static final String TAG = MainActivity.class.getSimpleName().toUpperCase();
 
-    public static MainActivity mainInstance;
-    public static NotebookCategoriesFragment categoriesFragment;
-    public static NotebookRecordsFragment recordsFragment;
-
-    public static void hideKeyboard() {
-//        Log.d(TAG, "hideKeyBoard invoked");
-        InputMethodManager imm = (InputMethodManager) mainInstance.getSystemService(Activity.INPUT_METHOD_SERVICE);
-//        //Find the currently focused view, so we can grab the correct window token from it.
-        View view = mainInstance.getCurrentFocus();
-//        //If no view currently has focus, create a new one, just so we can grab a window token from it
-        if (view == null) {
-//            Log.d(TAG, "view = null");
-            view = new View(mainInstance);
-        }
-        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-    }
-
-    public static View getViewByPosition(int pos, ListView listView) {
-        final int firstListItemPosition = listView.getFirstVisiblePosition();
-        final int lastListItemPosition = firstListItemPosition + listView.getChildCount() - 1;
-
-        if (pos < firstListItemPosition || pos > lastListItemPosition) {
-            return listView.getAdapter().getView(pos, null, listView);
-        } else {
-            final int childIndex = pos - firstListItemPosition;
-            return listView.getChildAt(childIndex);
-        }
-    }
-
-    public static void showKeyboardOnFocus(View view) {
-        view.requestFocus();
-        InputMethodManager imm = (InputMethodManager) mainInstance.getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT);
-    }
-
-    private Toast mToast;
     private NotebookPagerAdapter mPagerAdapter;
     private ViewPager mViewPager;
 
     public ViewPager getViewPager() {
         return mViewPager;
-    }
-
-    public SharedPreferences getSharedPreferences() {
-        String sharedPrefFileName = getApplicationContext().getPackageName() + "." + MainActivity.PREFERENCE_FILE_KEY;
-        return getSharedPreferences(sharedPrefFileName, Context.MODE_PRIVATE);
     }
 
     public NotebookPagerAdapter getPagerAdapter() {
@@ -99,18 +45,9 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
-    public void showToastMessage(String message) {
-        if (mToast != null) mToast.cancel();
-        mToast = Toast.makeText(this, message, Toast.LENGTH_LONG);
-        mToast.show();
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mainInstance = this;
-        if (categoriesFragment == null) categoriesFragment = new NotebookCategoriesFragment();
-        if (recordsFragment == null) recordsFragment = new NotebookRecordsFragment();
         setContentView(R.layout.activity_main);
         init();
     }
@@ -136,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        DBManager.getInstance().closeDB();
+        DBManager.getInstance(getApplicationContext()).closeDB();
 //        showToastMessage("isAppRunning = " + isAppRunning());
 
     }
@@ -146,9 +83,17 @@ public class MainActivity extends AppCompatActivity {
         /*Editable editable = new SpannableStringBuilder("abc");
         editable.replace(0, 0, "o");
         Log.d("MAINACTIVITY", "editable = " + editable);*/
+//        getSupportFragmentManager().beginTransaction().remove(new NotebookCategoriesFragment()).commit();
+//        getSupportFragmentManager().beginTransaction().remove(new NotebookRecordsFragment()).commit();
+
+
+//        if (categoriesFragment == null) categoriesFragment = new NotebookCategoriesFragment();
+//        if (recordsFragment == null) recordsFragment = new NotebookRecordsFragment();
+
+
         setLocale(APP_LOCALE);
-        DBManager.getInstance().openDB();
-        mPagerAdapter = new NotebookPagerAdapter(getSupportFragmentManager());
+        DBManager.getInstance(getApplicationContext()).openDB();
+        mPagerAdapter = new NotebookPagerAdapter(getSupportFragmentManager(), this);
         mViewPager = findViewById(R.id.view_pager);
         TabLayout tabLayout = findViewById(R.id.tab_layout);
         mViewPager.setAdapter(mPagerAdapter);

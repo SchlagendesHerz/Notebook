@@ -1,8 +1,22 @@
 package ua.com.supersonic.android.notebook.utils;
 
+import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.icu.util.Calendar;
 import android.net.Uri;
+import android.view.View;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.ListView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+
+import org.joda.time.DateTime;
+import org.joda.time.DurationFieldType;
+import org.joda.time.Period;
+import org.joda.time.PeriodType;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -15,13 +29,20 @@ import java.net.URL;
 import java.nio.channels.FileChannel;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.TimeZone;
+import java.util.Date;
+import java.util.Locale;
+
+import ua.com.supersonic.android.notebook.MainActivity;
 
 public class Utils {
 
     public static final String HTTP_GET_METHOD = "GET";
     public static final String HTTP_POST_METHOD = "POST";
 
+    private static final String AGO_FORMAT_PATTERN_D = "%dd ago";
+    public static final String AGO_FORMAT_PATTERN_HM = "%dh; %dm ago";
+    private static final String AGO_FORMAT_PATTERN_MOD = "%dm; %dd ago";
+    private static final String AGO_FORMAT_PATTERN_YMD = "%dy;%dm;%dd ago";
 
     private static final String EMPTY_STRING = "";
     private static final String FILE_SEPARATOR = "\u002F";
@@ -31,13 +52,14 @@ public class Utils {
     private static final String RESOURCE_PREFIX = ContentResolver.SCHEME_ANDROID_RESOURCE + "://";
     private static final String TAG = Utils.class.getSimpleName().toUpperCase();
 
+    private static Toast mToast;
+
     public enum FormatType {
         DB_DATE_TIME("yyyy-MM-dd HH:mm:ss"),
-        RECORD_FIND_DATE("yyyy-MM-dd"),
+        RECORD_FIND_ET("yyyy-MM-dd"),
         RECORD_FIND_TIME("HH:mm"),
         RECORD_ITEM_DATE("MMM d, yyyy"),
-        RECORD_ITEM_TIME("E h:mm a")
-        ;
+        RECORD_ITEM_TIME("E h:mm a");
         private final String pattern;
 
         FormatType(String pattern) {
@@ -56,6 +78,95 @@ public class Utils {
         if (dateFormat == null) dateFormat = new SimpleDateFormat();
         dateFormat.applyPattern(type.getPattern());
         return dateFormat;
+    }
+
+    public static void hideKeyboard(@NonNull Activity activity) {
+//        Log.d(TAG, "hideKeyBoard invoked");
+        InputMethodManager imm = (InputMethodManager) activity.getSystemService(Activity.INPUT_METHOD_SERVICE);
+//        //Find the currently focused view, so we can grab the correct window token from it.
+        View view = activity.getCurrentFocus();
+//        //If no view currently has focus, create a new one, just so we can grab a window token from it
+        if (view == null) {
+//            Log.d(TAG, "view = null");
+            view = new View(activity);
+        }
+        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+    }
+
+    public static View getViewByPosition(int pos, ListView listView) {
+        final int firstListItemPosition = listView.getFirstVisiblePosition();
+        final int lastListItemPosition = firstListItemPosition + listView.getChildCount() - 1;
+
+        if (pos < firstListItemPosition || pos > lastListItemPosition) {
+            return listView.getAdapter().getView(pos, null, listView);
+        } else {
+            final int childIndex = pos - firstListItemPosition;
+            return listView.getChildAt(childIndex);
+        }
+    }
+
+    public static SharedPreferences getSharedPreferences(Context appContext) {
+        String sharedPrefFileName = appContext.getPackageName() + "." + MainActivity.PREFERENCE_FILE_KEY;
+        return appContext.getSharedPreferences(sharedPrefFileName, Context.MODE_PRIVATE);
+    }
+
+    public static void showToastMessage(String message, Context context) {
+        if (mToast != null) mToast.cancel();
+        mToast = Toast.makeText(context, message, Toast.LENGTH_LONG);
+        mToast.show();
+    }
+
+    public static void showKeyboardOnFocus(View view, Context appContext) {
+        view.requestFocus();
+        InputMethodManager imm = (InputMethodManager) appContext.getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT);
+    }
+
+    public static String formatDouble(double input, int round) {
+        return Math.abs(input) - Math.abs(((int) input)) < Math.pow(10, -1 * round)
+                ? String.format(Locale.US, "%d", (int) input)
+                : String.format(Locale.US, "%." + round + "f", input);
+    }
+
+    public static String formatAgoDate(Date input) {
+        DateTime start = new DateTime(input);
+        DateTime end = new DateTime(Calendar.getInstance().getTime());
+
+//        Period period = new Period(start, end, PeriodType.yearMonthDay());
+        DurationFieldType[] durFields = new DurationFieldType[5];
+        durFields[0] = DurationFieldType.years();
+        durFields[1] = DurationFieldType.months();
+        durFields[2] = DurationFieldType.days();
+        durFields[3] = DurationFieldType.hours();
+        durFields[4] = DurationFieldType.minutes();
+
+        Period period = new Period(start, end, PeriodType.forFields(durFields));
+
+        int years = period.getYears();
+        int months = period.getMonths();
+        int days = period.getDays();
+        int hours = 0;
+        int minutes = 0;
+
+        if (days == 0) {
+            hours = period.getHours();
+            minutes = period.getMinutes();
+        }
+
+//        return String.format(Locale.ROOT, AGO_FORMAT_PATTERN_FULL, years, months, days);
+/*        return years == 0
+                ? months == 0
+                    ? String.format(Locale.US, AGO_FORMAT_PATTERN_D, days)
+                    : String.format(Locale.US, AGO_FORMAT_PATTERN_MD, months, days)
+                : String.format(Locale.US, AGO_FORMAT_PATTERN_YMD, years, months, days); */
+
+        return years == 0
+                ? months == 0
+                ? days == 0
+                ? String.format(Locale.US, AGO_FORMAT_PATTERN_HM, hours, minutes)
+                : String.format(Locale.US, AGO_FORMAT_PATTERN_D, days)
+                : String.format(Locale.US, AGO_FORMAT_PATTERN_MOD, months, days)
+                : String.format(Locale.US, AGO_FORMAT_PATTERN_YMD, years, months, days);
     }
 
     public static void copyFile(FileInputStream fromFile, FileOutputStream toFile) throws IOException {

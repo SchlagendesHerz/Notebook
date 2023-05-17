@@ -1,4 +1,4 @@
-package ua.com.supersonic.android.notebook.widgets;
+package ua.com.supersonic.android.notebook.custom_views;
 
 import android.content.Context;
 import android.util.AttributeSet;
@@ -7,10 +7,7 @@ import android.view.ViewConfiguration;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.view.MotionEventCompat;
 import androidx.viewpager.widget.ViewPager;
-
-import ua.com.supersonic.android.notebook.MainActivity;
 
 public class NonSwipeableViewPager extends ViewPager {
 

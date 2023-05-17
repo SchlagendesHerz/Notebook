@@ -3,24 +3,10 @@ package ua.com.supersonic.android.notebook.experiments;
 import android.text.Editable;
 import android.text.SpannableStringBuilder;
 
-import com.dropbox.core.DbxException;
-import com.dropbox.core.DbxRequestConfig;
-import com.dropbox.core.v2.DbxClientV2;
-import com.dropbox.core.v2.files.ListFolderResult;
-import com.dropbox.core.v2.files.Metadata;
-import com.dropbox.core.v2.users.FullAccount;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
-import ua.com.supersonic.android.notebook.MainActivity;
-import ua.com.supersonic.android.notebook.db.DBManager;
-import ua.com.supersonic.android.notebook.utils.Utils;
 
 public class DropboxExperiments {
 

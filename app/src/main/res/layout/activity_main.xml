@@ -2,9 +2,10 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_height="match_parent"
         android:layout_width="match_parent"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:id="@+id/main_root_container">
 
-    <ua.com.supersonic.android.notebook.widgets.NonSwipeableViewPager
+    <ua.com.supersonic.android.notebook.custom_views.NonSwipeableViewPager
             android:id="@+id/view_pager"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -23,5 +24,5 @@
                 tabSelectedTextColor="@android:color/white"
                 tabMode="fixed" />
 
-    </ua.com.supersonic.android.notebook.widgets.NonSwipeableViewPager>
+    </ua.com.supersonic.android.notebook.custom_views.NonSwipeableViewPager>
 </LinearLayout>

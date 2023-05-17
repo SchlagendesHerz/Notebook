@@ -1,6 +1,6 @@
 package ua.com.supersonic.android.notebook.adapters;
 
-import android.icu.util.Calendar;
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,70 +10,24 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import org.joda.time.DateTime;
-import org.joda.time.DurationFieldType;
-import org.joda.time.Period;
-import org.joda.time.PeriodType;
-
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Locale;
+import java.util.List;
 
-import ua.com.supersonic.android.notebook.MainActivity;
 import ua.com.supersonic.android.notebook.NotebookRecord;
 import ua.com.supersonic.android.notebook.R;
 import ua.com.supersonic.android.notebook.utils.Utils;
 
 public class RecordAdapter extends ArrayAdapter<NotebookRecord> {
-    private static final String AGO_FORMAT_PATTERN_D = "%dd ago";
-    private static final String AGO_FORMAT_PATTERN_HM = "%dh; %dm ago";
-    private static final String AGO_FORMAT_PATTERN_MOD = "%dm; %dd ago";
-    private static final String AGO_FORMAT_PATTERN_YMD = "%dy;%dm;%dd ago";
 
-    public static String formatAgo(Date input) {
-        DateTime start = new DateTime(input);
-        DateTime end = new DateTime(Calendar.getInstance().getTime());
+    private final List<Integer> mSelectedItems = new ArrayList<>();
 
-//        Period period = new Period(start, end, PeriodType.yearMonthDay());
-        DurationFieldType[] durFields = new DurationFieldType[5];
-        durFields[0] = DurationFieldType.years();
-        durFields[1] = DurationFieldType.months();
-        durFields[2] = DurationFieldType.days();
-        durFields[3] = DurationFieldType.hours();
-        durFields[4] = DurationFieldType.minutes();
-
-        Period period = new Period(start, end, PeriodType.forFields(durFields));
-
-        int years = period.getYears();
-        int months = period.getMonths();
-        int days = period.getDays();
-        int hours = 0;
-        int minutes = 0;
-
-        if (days == 0) {
-            hours = period.getHours();
-            minutes = period.getMinutes();
-        }
-
-//        return String.format(Locale.ROOT, AGO_FORMAT_PATTERN_FULL, years, months, days);
-/*        return years == 0
-                ? months == 0
-                    ? String.format(Locale.US, AGO_FORMAT_PATTERN_D, days)
-                    : String.format(Locale.US, AGO_FORMAT_PATTERN_MD, months, days)
-                : String.format(Locale.US, AGO_FORMAT_PATTERN_YMD, years, months, days); */
-
-        return years == 0
-                ? months == 0
-                ? days == 0
-                ? String.format(Locale.US, AGO_FORMAT_PATTERN_HM, hours, minutes)
-                : String.format(Locale.US, AGO_FORMAT_PATTERN_D, days)
-                : String.format(Locale.US, AGO_FORMAT_PATTERN_MOD, months, days)
-                : String.format(Locale.US, AGO_FORMAT_PATTERN_YMD, years, months, days);
+    public List<Integer> getSelectedItems() {
+        return mSelectedItems;
     }
 
-    public RecordAdapter() {
-        super(MainActivity.mainInstance.getApplicationContext(), 0, new ArrayList<>());
+    public RecordAdapter(Context appContext) {
+        super(appContext, 0, new ArrayList<>());
     }
 
     @NonNull
@@ -89,7 +43,7 @@ public class RecordAdapter extends ArrayAdapter<NotebookRecord> {
             textView.setText((position + 1) + ".");
 
             textView = convertView.findViewById(R.id.tv_amount);
-            textView.setText(formatAmount(item.getAmount()));
+            textView.setText(Utils.formatDouble(item.getAmount(), 2));
 
             textView = convertView.findViewById(R.id.tv_desc);
 //            String desc = item.getDescription() == null ? "--" : item.getDescription();
@@ -102,21 +56,24 @@ public class RecordAdapter extends ArrayAdapter<NotebookRecord> {
             textView.setText(formatTime(item.getDate()));
 
             textView = convertView.findViewById(R.id.tv_ago);
-            textView.setText(formatAgo(item.getDate()));
+            textView.setText(Utils.formatAgoDate(item.getDate()));
 
-            if (MainActivity.recordsFragment.getSelectedItems().contains(position)) {
-                convertView.setBackgroundColor(MainActivity.mainInstance.getResources().getColor(R.color.list_item_selected));
+            if (mSelectedItems.contains(position)) {
+                convertView.setBackgroundColor(getContext().getResources().getColor(R.color.list_item_selected));
+                ((TextView) (convertView.findViewById(R.id.tv_date))).setTextColor(getContext().getColor(R.color.white));
+                ((TextView) (convertView.findViewById(R.id.tv_time))).setTextColor(getContext().getColor(R.color.white));
+                ((TextView) (convertView.findViewById(R.id.tv_ago))).setTextColor(getContext().getColor(R.color.white));
+                ((TextView) (convertView.findViewById(R.id.tv_amount))).setTextColor(getContext().getColor(R.color.white));
+
             } else {
-                convertView.setBackgroundColor(MainActivity.mainInstance.getResources().getColor(R.color.white));
+                convertView.setBackgroundColor(getContext().getColor(R.color.white));
+                ((TextView) (convertView.findViewById(R.id.tv_date))).setTextColor(getContext().getColor(R.color.tv_time_date_text_color));
+                ((TextView) (convertView.findViewById(R.id.tv_time))).setTextColor(getContext().getColor(R.color.tv_time_date_text_color));
+                ((TextView) (convertView.findViewById(R.id.tv_ago))).setTextColor(getContext().getColor(R.color.tv_time_date_text_color));
+                ((TextView) (convertView.findViewById(R.id.tv_amount))).setTextColor(getContext().getColor(R.color.tv_time_date_text_color));
             }
         }
         return convertView;
-    }
-
-    private String formatAmount(double amount) {
-        return amount - ((int) amount) < 0.01
-                ? String.format(Locale.US, "%d", (int) amount)
-                : String.format(Locale.US, "%.2f", amount);
     }
 
     private String formatDate(Date date) {

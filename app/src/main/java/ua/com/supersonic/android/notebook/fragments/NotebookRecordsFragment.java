@@ -1,5 +1,6 @@
 package ua.com.supersonic.android.notebook.fragments;
 
+import android.annotation.SuppressLint;
 import android.app.DatePickerDialog;
 import android.app.Dialog;
 import android.app.TimePickerDialog;
@@ -25,10 +26,14 @@ import android.widget.TimePicker;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.util.Pair;
+import androidx.core.view.MotionEventCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 
+import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.MaterialDatePicker;
+
+import org.joda.time.DateTimeZone;
 
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -36,7 +41,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.function.Consumer;
@@ -49,12 +53,13 @@ import ua.com.supersonic.android.notebook.adapters.RecordAdapter;
 import ua.com.supersonic.android.notebook.db.DBConstants;
 import ua.com.supersonic.android.notebook.db.DBManager;
 import ua.com.supersonic.android.notebook.utils.Utils;
-import ua.com.supersonic.android.notebook.widgets.NonSwipeableViewPager;
+import ua.com.supersonic.android.notebook.custom_views.SwipeableConstraintLayout;
+import ua.com.supersonic.android.notebook.custom_views.NonSwipeableViewPager;
 
 public class NotebookRecordsFragment extends Fragment implements View.OnClickListener,
         AdapterView.OnItemClickListener, AdapterView.OnItemSelectedListener, View.OnTouchListener, View.OnFocusChangeListener {
 
-    private static final int MIN_SWIPE_DISTANCE = 100;
+    private static final int RANGE_SWIPE_OFF = -1;
 
     private static void updateCalendarHM(Calendar toUpdate, Date update) {
         Calendar calendarUpdate = Calendar.getInstance();
@@ -68,15 +73,6 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
         toUpdate.set(Calendar.MINUTE, minutes);
     }
 
-    private static void updateCalendarYMD(Calendar toUpdate, Date update) {
-        Calendar calendarUpdate = Calendar.getInstance();
-        calendarUpdate.setTime(update);
-
-        updateCalendarYMD(toUpdate, calendarUpdate.get(Calendar.YEAR),
-                calendarUpdate.get(Calendar.MONTH),
-                calendarUpdate.get(Calendar.DAY_OF_MONTH));
-    }
-
     private static void updateCalendarYMD(Calendar toUpdate, int year, int month, int day) {
         toUpdate.set(Calendar.YEAR, year);
         toUpdate.set(Calendar.MONTH, month);
@@ -86,7 +82,7 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
     private RecordAdapter mRecordAdapter;
     private ArrayAdapter<String> mSpinnerAEFAdapter;
 
-    private View mRootContainer;
+    private SwipeableConstraintLayout mRootContainer;
     private ListView mLvRecords;
     private Spinner mSpinnerAEF;
     private EditText mEtAEFRecord;
@@ -98,20 +94,18 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
     private TextView mEtFindEndDate;
 
     private boolean mIsAddBtPressed;
-    private boolean mIsFindBtPressed;
+    private int mFindBtMode;
     private boolean mIsEditBtPressed;
 
     private String[] mSpinnerAEFMap;
+    private int[] mSwipeRangeMap;
+    private int mCurSwipeRangeIdx;
     private int mPrevSpinnerAEFItem;
     private String mEtCache;
     private TextWatcher mTextWatcherCache;
 
-    private final List<Integer> mSelectedItems = new ArrayList<>();
 
     private int mCurCategoryId;
-
-    private float mStartDragX;
-    private float mStartDragY;
 
     private Calendar mFindStartCalendar;
     private Calendar mFindEndCalendar;
@@ -124,10 +118,6 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
         this.mCurCategoryId = curCategoryId;
     }
 
-    public List<Integer> getSelectedItems() {
-        return mSelectedItems;
-    }
-
     public boolean isAddBtPressed() {
         return mIsAddBtPressed;
     }
@@ -137,7 +127,7 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
     }
 
     public boolean isFindBtPressed() {
-        return mIsFindBtPressed;
+        return mFindBtMode != 0;
     }
 
     @Override
@@ -145,15 +135,15 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
         switch (view.getId()) {
             case R.id.bt_list_all:
                 resetSpinnerAEF();
-                resetListView();
+                resetSelectedItems();
                 resetBtAdd();
                 resetFind();
                 mIsAddBtPressed = false;
                 mIsEditBtPressed = false;
 //                mIsFindBtPressed = false;
 //                DropboxDBSynchronizer.getInstance().performDropboxImportTask();
-                showRecordList(DBManager.getInstance().readRecordsWhereKeyEquals(DBConstants.COLUMN_CATEGORY_ID, String.valueOf(mCurCategoryId)));
-                MainActivity.hideKeyboard();
+                showRecordList(DBManager.getInstance(getContext()).readRecordsWhereKeyEquals(DBConstants.COLUMN_CATEGORY_ID, String.valueOf(mCurCategoryId)));
+                Utils.hideKeyboard(getAppMainActivity());
                 mLvRecords.setVisibility(View.VISIBLE);
 //                mWidgetsContainer.setVisibility(View.INVISIBLE);
                 mWidgetsContainer.setVisibility(View.GONE);
@@ -168,23 +158,23 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
                     if (date == null) break;
                     Double amount = getAmountFromSpinnerAEFMap();
                     if (amount == null) break;
-                    NotebookRecord editRecord = mRecordAdapter.getItem(mSelectedItems.get(0));
+                    NotebookRecord editRecord = mRecordAdapter.getItem(mRecordAdapter.getSelectedItems().get(0));
                     editRecord.setDate(date);
                     editRecord.setAmount(amount);
                     editRecord.setDescription(mSpinnerAEFMap[2]);
                     mRecordAdapter.notifyDataSetChanged();
-                    DBManager.getInstance().updateRecord(editRecord);
+                    DBManager.getInstance(getContext()).updateRecord(editRecord);
 //                    DropboxDBSynchronizer.getInstance().performDropboxExportTask();
 
                     mIsEditBtPressed = false;
                     mWidgetsContainer.setVisibility(View.GONE);
                     mLvRecords.setVisibility(View.VISIBLE);
                     resetBtAdd();
-                    resetListView();
-                    MainActivity.hideKeyboard();
+                    resetSelectedItems();
+                    Utils.hideKeyboard(getAppMainActivity());
                     enableViewPagerSwipe();
                 } else {
-                    resetListView();
+                    resetSelectedItems();
                     if (mIsAddBtPressed) {
                         mSpinnerAEFMap[mSpinnerAEF.getSelectedItemPosition()] = mEtAEFRecord.getText()
                                 .toString().trim();
@@ -195,10 +185,10 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
                         newRecord.setDate(new Date());
                         newRecord.setAmount(amount);
                         newRecord.setDescription(mSpinnerAEFMap[1]);
-                        DBManager.getInstance().addRecord(newRecord);
+                        DBManager.getInstance(getContext()).addRecord(newRecord);
                         resetSpinnerAEF();
                         mIsAddBtPressed = false;
-                        MainActivity.hideKeyboard();
+                        Utils.hideKeyboard(getAppMainActivity());
 //                    mSpinnerAdapter.notifyDataSetChanged();
 //                        DropboxDBSynchronizer.getInstance().performDropboxExportTask();
                         mWidgetsContainer.setVisibility(View.GONE);
@@ -209,8 +199,57 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
                 }
                 break;
             case R.id.bt_find:
-                resetListView();
-                if (mIsFindBtPressed) {
+                mEtFindStartDate.clearFocus();
+                mEtFindEndDate.clearFocus();
+//                mEtFindStartDate.removeTextChangedListener(mTextWatcherCache);
+//                mEtFindEndDate.removeTextChangedListener(mTextWatcherCache);
+//                mTextWatcherCache = null;
+//                mDateSelector.requestFocus();
+                resetSelectedItems();
+                Utils.hideKeyboard(getAppMainActivity());
+                switch (mFindBtMode) {
+                    case 0:
+                        btFindPressedFirstTime();
+                        enableViewPagerSwipe();
+                        break;
+                    case 1:
+                        if (mFindStartCalendar.compareTo(mFindEndCalendar) < 0) {
+                            mRecordAdapter.clear();
+                            mRecordAdapter.addAll(DBManager.getInstance(getContext())
+                                    .readRecordsWhereDateBetween(mCurCategoryId, mFindStartCalendar.getTime(),
+                                            mFindEndCalendar.getTime()));
+                            if (mRecordAdapter.isEmpty()) {
+                                hideTotals();
+                                mLvRecords.setVisibility(View.GONE);
+                                mRootContainer.findViewById(R.id.tv_message).setVisibility(View.VISIBLE);
+                            } else {
+                                mLvRecords.setVisibility(View.GONE);
+                                showTotals(calcRecordsTotals());
+                                mFindBtMode = 3;
+                                mRootContainer.setInterceptOn();
+                            }
+
+                        } else {
+                            Utils.showToastMessage(getString(R.string.invalid_time_period_message), getContext());
+
+                        }
+                        break;
+                    case 2:
+                        mLvRecords.setVisibility(View.GONE);
+                        showTotals();
+                        mFindBtMode = 3;
+                        mRootContainer.setInterceptOn();
+                        break;
+                    case 3:
+                        hideTotals();
+                        mRecordAdapter.notifyDataSetChanged();
+                        mLvRecords.setVisibility(View.VISIBLE);
+                        mFindBtMode = 2;
+                        mRootContainer.setInterceptOff();
+                        break;
+                }
+            /*    if (mFindBtPressedCount) {
+
                     if (mFindStartCalendar.compareTo(mFindEndCalendar) < 0) {
                         mLvRecords.setVisibility(View.VISIBLE);
                         showRecordList(DBManager.getInstance()
@@ -222,25 +261,25 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
                 } else {
                     btFindPressedFirstTime();
                     enableViewPagerSwipe();
-                }
+                }*/
                 break;
             case R.id.bt_clear:
                 mEtAEFRecord.setText("");
                 break;
             case R.id.bt_rem:
-                if (!mSelectedItems.isEmpty()) {
+                if (!mRecordAdapter.getSelectedItems().isEmpty()) {
                     List<NotebookRecord> listToDelete = new ArrayList<>();
-                    for (Integer pos : mSelectedItems) {
+                    for (Integer pos : mRecordAdapter.getSelectedItems()) {
                         listToDelete.add(mRecordAdapter.getItem(pos));
                     }
                     for (NotebookRecord recordToDelete : listToDelete) {
                         mRecordAdapter.remove(recordToDelete);
                     }
                     mRecordAdapter.notifyDataSetChanged();
-                    DBManager.getInstance().deleteRecords(listToDelete);
+                    DBManager.getInstance(getContext()).deleteRecords(listToDelete);
 //                    DropboxDBSynchronizer.getInstance().performDropboxExportTask();
                 }
-                resetListView();
+                resetSelectedItems();
                 break;
             case R.id.bt_edit:
                 resetSpinnerAEF();
@@ -250,12 +289,19 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
                 }
                 break;
             case R.id.bt_date_range_selector:
-                onFocusChange(mEtFindStartDate, false);
-                onFocusChange(mEtFindEndDate, false);
+                mEtFindStartDate.clearFocus();
+                mEtFindEndDate.clearFocus();
+//                mEtFindStartDate.removeTextChangedListener(mTextWatcherCache);
+//                mEtFindEndDate.removeTextChangedListener(mTextWatcherCache);
+//                mTextWatcherCache = null;
+
+//                onFocusChange(mEtFindStartDate, false);
+//                onFocusChange(mEtFindEndDate, false);
                 if (mFindStartCalendar.compareTo(mFindEndCalendar) > 0) {
-                    MainActivity.mainInstance.showToastMessage(getString(R.string.invalid_time_period_message));
+                    Utils.showToastMessage(getString(R.string.invalid_time_period_message), getContext());
                 } else {
                     showDateRangePicker();
+                    mFindBtMode = 1;
                 }
 //                Log.d("RECORD", "BEFORE: " + mFindStartCalendar.getTime().getTime());
 
@@ -268,40 +314,14 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
         }
     }
 
-    private void showDateRangePicker() {
-        MaterialDatePicker.Builder<Pair<Long, Long>> rangePickerBuilder = MaterialDatePicker.Builder.dateRangePicker();
-        long timeZoneOffset = TimeZone.getDefault().getRawOffset();
-        rangePickerBuilder.setSelection(new Pair<>(mFindStartCalendar.getTimeInMillis() + timeZoneOffset,
-                mFindEndCalendar.getTimeInMillis() + timeZoneOffset));
-
-        MaterialDatePicker<Pair<Long, Long>> rangePicker = rangePickerBuilder.build();
-        rangePicker.addOnPositiveButtonClickListener(
-                selection -> {
-                    DateFormat dateFormat = Utils.getDateFormatInstance(Utils.FormatType.RECORD_FIND_DATE);
-                    Date startDate = new Date(selection.first - timeZoneOffset);
-                    Date endDate = new Date(selection.second - timeZoneOffset);
-                    mEtFindStartDate.setText(dateFormat.format(startDate));
-                    mEtFindEndDate.setText(dateFormat.format(endDate));
-                    updateCalendarYMD(mFindStartCalendar, startDate);
-                    updateCalendarYMD(mFindEndCalendar, endDate);
-
-//                    DateFormat dateFormat1 = Utils.getDateFormatInstance(Utils.FormatType.DB_DATE_TIME);
-//                    MainActivity.mainInstance.showToastMessage(dateFormat1.format(new Date(selection.first)));
-//                    MainActivity.mainInstance.showToastMessage(dateFormat1.getTimeZone().toString());
-                    dateFormat = Utils.getDateFormatInstance(Utils.FormatType.DB_DATE_TIME);
-                    Log.d("RECORD", "START: " + dateFormat.format(new Date(selection.first - timeZoneOffset)));
-                    Log.d("RECORD", "END: " + dateFormat.format(new Date(selection.second - timeZoneOffset)));
-                    Log.d("RECORD", "CALENDAR START: " + dateFormat.format(mFindStartCalendar.getTime()));
-                    Log.d("RECORD", "CALENDAR END: " + dateFormat.format(mFindEndCalendar.getTime()));
-                }
-        );
-        rangePicker.show(requireActivity().getSupportFragmentManager(), "");
+    private MainActivity getAppMainActivity() {
+        return ((MainActivity) requireActivity());
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 //        MainActivity.mainInstance.showToastMessage(String.valueOf(mCurCategoryId));
-        mRootContainer = inflater.inflate(R.layout.fragment_categories_records, container, false);
+        mRootContainer = (SwipeableConstraintLayout) inflater.inflate(R.layout.fragment_categories_records, container, false);
         init();
         return mRootContainer;
     }
@@ -309,40 +329,44 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
     @Override
     public void onFocusChange(View view, boolean hasFocus) {
         if (hasFocus) {
-            mEtCache = ((EditText) view).getText().toString();
+            mEtCache = ((EditText) view).getText().toString().trim();
+//            if (mTextWatcherCache == null) mTextWatcherCache = new DateETWatcher();
             switch (view.getId()) {
                 case R.id.et_start_date:
-                    mEtFindStartDate.addTextChangedListener(mTextWatcherCache = new DateETWatcher());
+//                    mEtFindStartDate.addTextChangedListener(mTextWatcherCache);
                     break;
                 case R.id.et_end_date:
-                    mEtFindEndDate.addTextChangedListener(mTextWatcherCache = new DateETWatcher());
+//                    mEtFindEndDate.addTextChangedListener(mTextWatcherCache);
                     break;
             }
         } else {
+//            MainActivity.hideKeyboard();
             DateFormat dateFormat;
             Date date;
             if (!((EditText) view).getText().toString().trim().equals(mEtCache)) {
                 try {
                     switch (view.getId()) {
                         case R.id.et_start_date:
-                            mEtFindStartDate.removeTextChangedListener(mTextWatcherCache);
-                            mTextWatcherCache = null;
-                            dateFormat = Utils.getDateFormatInstance(Utils.FormatType.RECORD_FIND_DATE);
+//                            mEtFindStartDate.removeTextChangedListener(mTextWatcherCache);
+//                            mTextWatcherCache = null;
+                            dateFormat = Utils.getDateFormatInstance(Utils.FormatType.RECORD_FIND_ET);
                             date = dateFormat.parse(String.valueOf(((EditText) view).getText()));
                             updateCalendarYMD(mFindStartCalendar, date);
+                            resetFindResults();
                             break;
                         case R.id.et_end_date:
-                            mEtFindStartDate.removeTextChangedListener(mTextWatcherCache);
-                            mTextWatcherCache = null;
-                            dateFormat = Utils.getDateFormatInstance(Utils.FormatType.RECORD_FIND_DATE);
+//                            mEtFindStartDate.removeTextChangedListener(mTextWatcherCache);
+//                            mTextWatcherCache = null;
+                            dateFormat = Utils.getDateFormatInstance(Utils.FormatType.RECORD_FIND_ET);
                             date = dateFormat.parse(String.valueOf(((EditText) view).getText()));
                             updateCalendarYMD(mFindEndCalendar, date);
+                            resetFindResults();
                             break;
                         default:
                             mEtCache = null;
                     }
                 } catch (ParseException ex) {
-                    MainActivity.mainInstance.showToastMessage(getString(R.string.invalid_date_field_message));
+                    Utils.showToastMessage(getString(R.string.invalid_date_field_message), getContext());
                     ((EditText) view).setText(mEtCache);
                     mEtCache = null;
                 }
@@ -355,26 +379,26 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
 //        MainActivity.mainInstance.showToastMessage("SELECTED :" + i);
 
         switch (adapterView.getId()) {
-            case R.id.lv:
+            case R.id.lv_items:
+                Log.i("RECORD", "VIEW = " + view.getClass().getSimpleName());
 //                resetListView();
 //                mViewItemSelected = view;
-                if (!mSelectedItems.contains(i)) {
-                    mSelectedItems.add(i);
-                    view.setBackgroundColor(getResources().getColor(R.color.list_item_selected));
+                List<Integer> selectedItems = mRecordAdapter.getSelectedItems();
+                if (!selectedItems.contains(i)) {
+                    selectedItems.add(i);
                 } else {
-                    mSelectedItems.remove((Object) i);
-                    view.setBackgroundColor(getResources().getColor(R.color.white));
+                    selectedItems.remove((Object) i);
                 }
+                mRecordAdapter.notifyDataSetChanged();
                 mCurItemButtons.setVisibility(View.VISIBLE);
-                if (mSelectedItems.size() > 1) {
+                if (selectedItems.size() > 1) {
                     mCurItemButtons.findViewById(R.id.bt_edit).setVisibility(View.INVISIBLE);
-                } else if (mSelectedItems.size() == 1) {
+                } else if (selectedItems.size() == 1) {
                     mCurItemButtons.findViewById(R.id.bt_edit).setVisibility(View.VISIBLE);
-
                 } else {
                     mCurItemButtons.setVisibility(View.GONE);
                 }
-                MainActivity.hideKeyboard();
+                Utils.hideKeyboard(getAppMainActivity());
 //                MainActivity.mainInstance.showToastMessage(mSelectedItems.toString());
                 break;
         }
@@ -395,47 +419,211 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
 //        MainActivity.mainInstance.showToastMessage("NOTHING SELECTED");
     }
 
+    @SuppressLint("NewApi")
     @Override
     public boolean onTouch(View view, MotionEvent motionEvent) {
-        float curDragX = motionEvent.getX();
-        float curDragY = motionEvent.getY();
+        final int action = MotionEventCompat.getActionMasked(motionEvent);
 
-        switch (motionEvent.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                mStartDragX = curDragX;
-                mStartDragY = curDragY;
-                break;
+//        Log.d("RECORD", "===============");
+//        Log.d("RECORD", "ACTION = " + MotionEvent.actionToString(action));
+
+        float curX = motionEvent.getX();
+        float curY = motionEvent.getY();
+
+        switch (action) {
             case MotionEvent.ACTION_UP:
-//                if (Math.abs(motionEvent.getX() - mStartDragX) >= MIN_SWIPE_DISTANCE) {
-                if (isHorizontalSwipe(curDragX, curDragY)) {
-                    if (curDragX > mStartDragX) {
-//                        mStartDragX = motionEvent.getX();
-                        MainActivity.recordsFragment.showPrevField();
+//                Log.d("RECORD", "ACTION = UP");
 
-                    } else if (curDragX < mStartDragX) {
-//                        mStartDragX = motionEvent.getX();
-                        MainActivity.recordsFragment.showNextField();
+                if (isHorizontalSwipe(curX, curY)) {
+
+//                  Button "Add" or "Edit" pressed
+                    if (isAddBtPressed() || isEditBtPressed()) {
+
+//                      Swipe right
+                        if (curX > mRootContainer.getDownPointX()) {
+                            showPrevField();
+
+//                      Swipe left
+                        } else if (curX < mRootContainer.getDownPointX()) {
+//                          mStartDragX = motionEvent.getX();
+                            showNextField();
+                        }
+                    } else if (isFindBtPressed() && mCurSwipeRangeIdx != 0) {
+//                      Swipe right
+                        if (curX > mRootContainer.getDownPointX()) {
+                            handleHorizontalRangeSelectSwipe(false);
+
+//                      Swipe left
+                        } else if (curX < mRootContainer.getDownPointX()) {
+                            handleHorizontalRangeSelectSwipe(true);
+                        }
                     }
+
+//              Vertical swipe
                 } else {
-                    if (curDragY > mStartDragY) {
-//                        mStartDragX = motionEvent.getX();
-                        showRecordList();
+//                  Button "Edit" pressed
+                    if (isFindBtPressed()) {
 
-                    }
+//                      Swipe down
+                        if (curY > mRootContainer.getDownPointY()) {
+                            mCurSwipeRangeIdx++;
+/*
+                            mCurSwipeRangeIdx =
+                                    mCurSwipeRangeIdx == 0
+                                            ? 3
+                                            : mCurSwipeRangeIdx + 1;
+*/
+
+//                      Swipe up
+                        } else {
+                            mCurSwipeRangeIdx--;
+                        }
+                        handleVerticalRangeSelectSwipe();
+//                  Other buttons ("LIST ALL", "EDIT") pressed
+                    } else
+//                      Swipe down
+                        if (curY > mRootContainer.getDownPointY()) {
+                            showRecordList();
+
+                        }
                 }
-//                }
         }
         return false;
     }
 
+    private void handleHorizontalRangeSelectSwipe(boolean isNext) {
+        int incr = isNext ? 1 : -1;
+
+        switch (mSwipeRangeMap[mCurSwipeRangeIdx]) {
+            case Calendar.DAY_OF_MONTH:
+                mFindStartCalendar.add(Calendar.DAY_OF_MONTH, incr);
+                mFindEndCalendar.setTime(mFindStartCalendar.getTime());
+                setDayStartOf(mFindStartCalendar);
+                setDayEndOf(mFindEndCalendar);
+
+                refreshFindEt();
+                break;
+            case Calendar.WEEK_OF_MONTH:
+                mFindStartCalendar.add(Calendar.WEEK_OF_MONTH, incr);
+                mFindEndCalendar.setTime(mFindStartCalendar.getTime());
+                setWeekStartOf(mFindStartCalendar);
+                setWeekEndOf(mFindEndCalendar);
+
+//              Correction for week starting on Monday
+                mFindStartCalendar.add(Calendar.DAY_OF_YEAR, 1);
+                mFindEndCalendar.add(Calendar.DAY_OF_YEAR, 1);
+
+                refreshFindEt();
+                break;
+            case Calendar.MONTH:
+                mFindStartCalendar.add(Calendar.MONTH, incr);
+                mFindEndCalendar.setTime(mFindStartCalendar.getTime());
+                setMonthStartOf(mFindStartCalendar);
+                setMonthEndOf(mFindEndCalendar);
+
+                refreshFindEt();
+                break;
+
+            case Calendar.YEAR:
+                mFindStartCalendar.add(Calendar.YEAR, incr);
+                mFindEndCalendar.setTime(mFindStartCalendar.getTime());
+                setYearStartOf(mFindStartCalendar);
+                setYearEndOf(mFindEndCalendar);
+
+                refreshFindEt();
+                break;
+        }
+        resetFindResults();
+    }
+
+    private void resetFindResults() {
+        hideTotals();
+        mLvRecords.setVisibility(View.GONE);
+        mRootContainer.findViewById(R.id.tv_message).setVisibility(View.GONE);
+        mRecordAdapter.clear();
+        mRecordAdapter.notifyDataSetChanged();
+        mFindBtMode = 1;
+    }
+
+    private void handleVerticalRangeSelectSwipe() {
+        if (mCurSwipeRangeIdx < 0) mCurSwipeRangeIdx = 0;
+        else if (mCurSwipeRangeIdx >= mSwipeRangeMap.length)
+            mCurSwipeRangeIdx = 0;
+
+        switch (mSwipeRangeMap[mCurSwipeRangeIdx]) {
+            case RANGE_SWIPE_OFF:
+                setSwipeRangeOff();
+                enableViewPagerSwipe();
+                Log.d("RECORD", "SWIPE RANGE = OFF");
+                break;
+            case Calendar.DAY_OF_MONTH:
+                disableViewPagerSwipe();
+                setRangeSwipeToDay();
+                Log.d("RECORD", "SWIPE RANGE = DAY");
+                break;
+            case Calendar.WEEK_OF_MONTH:
+                disableViewPagerSwipe();
+                setRangeSwipeToWeek();
+                Log.d("RECORD", "SWIPE RANGE = WEEK");
+                break;
+            case Calendar.MONTH:
+                disableViewPagerSwipe();
+                setRangeSwipeToMonth();
+                Log.d("RECORD", "SWIPE RANGE = MONTH");
+                break;
+            case Calendar.YEAR:
+                disableViewPagerSwipe();
+                setRangeSwipeToYear();
+                Log.d("RECORD", "SWIPE RANGE = YEAR");
+                break;
+        }
+    }
+
+    private void setSwipeRangeOff() {
+        mRootContainer.findViewById(R.id.prev_arrow_container).setVisibility(View.GONE);
+        mRootContainer.findViewById(R.id.next_arrow_container).setVisibility(View.GONE);
+    }
+
+    private void setRangeSwipeToDay() {
+        ((TextView) (mRootContainer.findViewById(R.id.tv_range_prev))).setText(R.string.tv_range_day);
+        ((TextView) (mRootContainer.findViewById(R.id.tv_range_next))).setText(R.string.tv_range_day);
+        mRootContainer.findViewById(R.id.prev_arrow_container).setVisibility(View.VISIBLE);
+        mRootContainer.findViewById(R.id.next_arrow_container).setVisibility(View.VISIBLE);
+        mRootContainer.findViewById(R.id.next_arrow_container).setVisibility(View.VISIBLE);
+//        mRootContainer.findViewById(R.id.date_selector_container).requestLayout();
+
+    }
+
+    private void setRangeSwipeToWeek() {
+        ((TextView) (mRootContainer.findViewById(R.id.tv_range_prev))).setText(R.string.tv_range_week);
+        ((TextView) (mRootContainer.findViewById(R.id.tv_range_next))).setText(R.string.tv_range_week);
+        mRootContainer.findViewById(R.id.prev_arrow_container).setVisibility(View.VISIBLE);
+        mRootContainer.findViewById(R.id.next_arrow_container).setVisibility(View.VISIBLE);
+    }
+
+    private void setRangeSwipeToMonth() {
+        ((TextView) (mRootContainer.findViewById(R.id.tv_range_prev))).setText(R.string.tv_range_month);
+        ((TextView) (mRootContainer.findViewById(R.id.tv_range_next))).setText(R.string.tv_range_month);
+        mRootContainer.findViewById(R.id.prev_arrow_container).setVisibility(View.VISIBLE);
+        mRootContainer.findViewById(R.id.next_arrow_container).setVisibility(View.VISIBLE);
+    }
+
+    private void setRangeSwipeToYear() {
+        ((TextView) (mRootContainer.findViewById(R.id.tv_range_prev))).setText(R.string.tv_range_year);
+        ((TextView) (mRootContainer.findViewById(R.id.tv_range_next))).setText(R.string.tv_range_year);
+        mRootContainer.findViewById(R.id.prev_arrow_container).setVisibility(View.VISIBLE);
+        mRootContainer.findViewById(R.id.next_arrow_container).setVisibility(View.VISIBLE);
+    }
+
     public void resetRecords() {
-        resetListView();
+        resetSelectedItems();
         resetSpinnerAEF();
         resetFind();
         mRecordAdapter.clear();
         mRecordAdapter.notifyDataSetChanged();
         mWidgetsContainer.setVisibility(View.GONE);
         mLvRecords.setVisibility(View.GONE);
+        mRootContainer.findViewById(R.id.totals_container).setVisibility(View.GONE);
     }
 
     public void showNextField() {
@@ -477,9 +665,9 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
         mLvRecords.setVisibility(View.GONE);
         mWidgetsContainer.setVisibility(View.VISIBLE);
         mIsAddBtPressed = true;
-        mIsFindBtPressed = false;
+        mFindBtMode = 0;
 //        MainActivity.mainInstance.showToastMessage(Arrays.toString(mSpinnerMap));
-        MainActivity.showKeyboardOnFocus(mEtAEFRecord);
+        Utils.showKeyboardOnFocus(mEtAEFRecord, requireContext());
     }
 
     private void btEditPressedFirstTime() {
@@ -501,9 +689,9 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
 
         mIsEditBtPressed = true;
         mIsAddBtPressed = false;
-        mIsFindBtPressed = false;
+        mFindBtMode = 0;
 //        MainActivity.mainInstance.showToastMessage(Arrays.toString(mSpinnerMap));
-        MainActivity.showKeyboardOnFocus(mEtAEFRecord);
+        Utils.showKeyboardOnFocus(mEtAEFRecord, requireContext());
     }
 
     private void btFindPressedFirstTime() {
@@ -514,28 +702,53 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
         mWidgetsContainer.setVisibility(View.GONE);
         mCurItemButtons.setVisibility(View.GONE);
         mDateSelector.setVisibility(View.VISIBLE);
+        hideTotals();
 
-        mFindStartCalendar = new GregorianCalendar();
-        mFindEndCalendar = new GregorianCalendar();
+        mSwipeRangeMap = getSwipeRangeMap();
+//        mFindStartCalendar = new GregorianCalendar();
+//        mFindEndCalendar = new GregorianCalendar();
+
+        mFindStartCalendar = Calendar.getInstance();
+        mFindEndCalendar = Calendar.getInstance();
+
         setMonthStartOf(mFindStartCalendar);
         setDayEndOf(mFindEndCalendar);
 
-        DateFormat dateFormat = Utils.getDateFormatInstance(Utils.FormatType.RECORD_FIND_DATE);
-        mEtFindStartDate.setText(dateFormat.format(mFindStartCalendar.getTime()));
-        mEtFindEndDate.setText(dateFormat.format(mFindEndCalendar.getTime()));
+        refreshFindEt();
 
         mIsAddBtPressed = false;
         mIsEditBtPressed = false;
-        mIsFindBtPressed = true;
-        MainActivity.hideKeyboard();
+        mFindBtMode = 1;
+        Utils.hideKeyboard(getAppMainActivity());
+        mRootContainer.setInterceptOn();
+    }
+
+    private double[] calcRecordsTotals() {
+        int itemsCount = 0;
+        double totalValue = 0, averageValue, maxValue, minValue;
+        NotebookRecord curRecord;
+        minValue = maxValue = mRecordAdapter.getItem(0).getAmount();
+
+        for (int i = 0; i < mRecordAdapter.getCount(); i++) {
+            curRecord = mRecordAdapter.getItem(i);
+            itemsCount++;
+            totalValue = Double.sum(totalValue, curRecord.getAmount());
+            if (Double.compare(curRecord.getAmount(), minValue) < 0)
+                minValue = curRecord.getAmount();
+            if (Double.compare(curRecord.getAmount(), maxValue) > 0) {
+                maxValue = curRecord.getAmount();
+            }
+        }
+        averageValue = totalValue / itemsCount;
+        return new double[]{itemsCount, minValue, maxValue, averageValue, totalValue};
     }
 
     private void disableViewPagerSwipe() {
-        ((NonSwipeableViewPager) MainActivity.mainInstance.getViewPager()).setSwipeEnabled(false);
+        ((NonSwipeableViewPager) getAppMainActivity().getViewPager()).setSwipeEnabled(false);
     }
 
     private void enableViewPagerSwipe() {
-        ((NonSwipeableViewPager) MainActivity.mainInstance.getViewPager()).setSwipeEnabled(true);
+        ((NonSwipeableViewPager) getAppMainActivity().getViewPager()).setSwipeEnabled(true);
     }
 
     private InputFilter[] genTimeETFilters() {
@@ -552,7 +765,7 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
             if (mIsAddBtPressed) return Double.parseDouble(mSpinnerAEFMap[0]);
             else if (mIsEditBtPressed) return Double.parseDouble(mSpinnerAEFMap[1]);
         } catch (NumberFormatException e) {
-            MainActivity.mainInstance.showToastMessage(getString(R.string.invalid_amount_field_message));
+            Utils.showToastMessage(getString(R.string.invalid_amount_field_message), getContext());
             restoreSpinnerAEFAmount();
         }
         return null;
@@ -564,26 +777,10 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
                 return Utils.getDateFormatInstance(Utils.FormatType.DB_DATE_TIME)
                         .parse(mSpinnerAEFMap[0]);
         } catch (ParseException e) {
-            MainActivity.mainInstance.showToastMessage(getString(R.string.invalid_date_field_message));
+            Utils.showToastMessage(getString(R.string.invalid_date_field_message), getContext());
             restoreSpinnerAEFDate();
         }
         return null;
-    }
-
-    private void setMonthStartOf(Calendar inputCalendar) {
-        inputCalendar.set(Calendar.DAY_OF_MONTH, inputCalendar.getActualMinimum(Calendar.DAY_OF_MONTH));
-        inputCalendar.set(Calendar.HOUR_OF_DAY, inputCalendar.getActualMinimum(Calendar.HOUR_OF_DAY));
-        inputCalendar.set(Calendar.MINUTE, inputCalendar.getActualMinimum(Calendar.MINUTE));
-        inputCalendar.set(Calendar.SECOND, inputCalendar.getActualMinimum(Calendar.SECOND));
-        inputCalendar.set(Calendar.MILLISECOND, inputCalendar.getActualMinimum(Calendar.MILLISECOND));
-    }
-
-    private void setDayEndOf(Calendar inputCalendar) {
-//        inputCalendar.set(Calendar.DAY_OF_MONTH, inputCalendar.getActualMaximum(Calendar.DAY_OF_MONTH));
-        inputCalendar.set(Calendar.HOUR_OF_DAY, inputCalendar.getActualMaximum(Calendar.HOUR_OF_DAY));
-        inputCalendar.set(Calendar.MINUTE, inputCalendar.getActualMaximum(Calendar.MINUTE));
-        inputCalendar.set(Calendar.SECOND, inputCalendar.getActualMaximum(Calendar.SECOND));
-        inputCalendar.set(Calendar.MILLISECOND, inputCalendar.getActualMaximum(Calendar.MILLISECOND));
     }
 
     private List<String> getRecordFieldsOnBtAddPressed() {
@@ -614,12 +811,21 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
 
     private String[] getSpinnerAEFMapOnBtEditPressed() {
         String[] spinnerMap = new String[3];
-        NotebookRecord record = mRecordAdapter.getItem(mSelectedItems.get(0));
+        NotebookRecord record = mRecordAdapter.getItem(mRecordAdapter.getSelectedItems().get(0));
         spinnerMap[0] = Utils.getDateFormatInstance(Utils.FormatType.DB_DATE_TIME)
                 .format(record.getDate());
         spinnerMap[1] = String.valueOf(record.getAmount());
         spinnerMap[2] = record.getDescription();
         return spinnerMap;
+    }
+
+    private int[] getSwipeRangeMap() {
+        return new int[]{RANGE_SWIPE_OFF, Calendar.DAY_OF_MONTH, Calendar.WEEK_OF_MONTH, Calendar.MONTH, Calendar.YEAR};
+    }
+
+    private void hideTotals() {
+        View totalsContainer = mRootContainer.findViewById(R.id.totals_container);
+        totalsContainer.setVisibility(View.GONE);
     }
 
     private void init() {
@@ -633,7 +839,7 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
         mRootContainer.findViewById(R.id.bt_date_range_selector).setOnClickListener(this);
         mRootContainer.findViewById(R.id.bt_show_records).setVisibility(View.GONE);
 
-        mSpinnerAEFAdapter = new ArrayAdapter<>(MainActivity.mainInstance, android.R.layout.simple_list_item_1, new ArrayList<>());
+        mSpinnerAEFAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_list_item_1, new ArrayList<>());
         mSpinnerAEF = mRootContainer.findViewById(R.id.spinner);
         mSpinnerAEF.setVisibility(View.VISIBLE);
         mSpinnerAEF.setAdapter(mSpinnerAEFAdapter);
@@ -642,7 +848,7 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
         mWidgetsContainer = mRootContainer.findViewById(R.id.widgets_container);
         mEtAEFRecord = mRootContainer.findViewById(R.id.et_add_edit_find);
 
-        mDateSelector = mRootContainer.findViewById(R.id.date_selector);
+        mDateSelector = mRootContainer.findViewById(R.id.date_selector_container);
 
         mEtFindStartDate = mRootContainer.findViewById(R.id.et_start_date);
         mEtFindStartDate.setOnFocusChangeListener(this);
@@ -651,8 +857,8 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
         mEtFindEndDate = mRootContainer.findViewById(R.id.et_end_date);
         mEtFindEndDate.setOnFocusChangeListener(this);
 
-        mLvRecords = mRootContainer.findViewById(R.id.lv);
-        mRecordAdapter = new RecordAdapter();
+        mLvRecords = mRootContainer.findViewById(R.id.lv_items);
+        mRecordAdapter = new RecordAdapter(getContext());
         mLvRecords.setAdapter(mRecordAdapter);
         mLvRecords.setOnItemClickListener(this);
         mLvRecords.setVisibility(View.GONE);
@@ -660,11 +866,22 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
         mCurItemButtons = mRootContainer.findViewById(R.id.bottom_bts);
         mCurItemButtons.setVisibility(View.GONE);
 
+        mRootContainer.setInterceptOff();
         mRootContainer.setOnTouchListener(this);
     }
 
+    private boolean isDateEqual(Calendar first, Calendar second) {
+        return first.get(Calendar.YEAR) == second.get(Calendar.YEAR)
+                && first.get(Calendar.MONTH) == second.get(Calendar.MONTH)
+                && first.get(Calendar.DAY_OF_MONTH) == second.get(Calendar.DAY_OF_MONTH);
+    }
+
     private boolean isHorizontalSwipe(float curDragX, float curDragY) {
-        return Math.abs(curDragX - mStartDragX) > Math.abs(curDragY - mStartDragY);
+        return Math.abs(curDragX - mRootContainer.getDownPointX()) > Math.abs(curDragY - mRootContainer.getDownPointY());
+    }
+
+    private boolean isVerticalSwipe(float curDragX, float curDragY) {
+        return Math.abs(curDragX - mRootContainer.getDownPointX()) < Math.abs(curDragY - mRootContainer.getDownPointY());
     }
 
     private void resetBtAdd() {
@@ -672,19 +889,30 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
     }
 
     private void resetFind() {
-        mIsFindBtPressed = false;
+        mFindBtMode = 0;
         mFindEndCalendar = null;
         mFindStartCalendar = null;
+        mSwipeRangeMap = null;
+        mCurSwipeRangeIdx = 0;
+        setSwipeRangeOff();
         mDateSelector.setVisibility(View.GONE);
+        hideTotals();
+        mRootContainer.setInterceptOff();
     }
 
-    private void resetListView() {
-        if (!mSelectedItems.isEmpty()) {
-            for (Integer pos : mSelectedItems) {
-                MainActivity.getViewByPosition(pos, mLvRecords)
-                        .setBackgroundColor(getResources().getColor(R.color.white));
+    private void resetSelectedItems() {
+        List<Integer> selectedItems = mRecordAdapter.getSelectedItems();
+        if (!selectedItems.isEmpty()) {
+            View curListItem;
+            for (Integer pos : selectedItems) {
+                curListItem = Utils.getViewByPosition(pos, mLvRecords);
+                curListItem.setBackgroundColor(getResources().getColor(R.color.white));
+                ((TextView) (curListItem.findViewById(R.id.tv_date))).setTextColor(getResources().getColor(R.color.tv_time_date_text_color));
+                ((TextView) (curListItem.findViewById(R.id.tv_time))).setTextColor(getResources().getColor(R.color.tv_time_date_text_color));
+                ((TextView) (curListItem.findViewById(R.id.tv_ago))).setTextColor(getResources().getColor(R.color.tv_time_date_text_color));
+                ((TextView) (curListItem.findViewById(R.id.tv_amount))).setTextColor(getResources().getColor(R.color.tv_time_date_text_color));
             }
-            mSelectedItems.clear();
+            selectedItems.clear();
         }
         mCurItemButtons.setVisibility(View.GONE);
         mRootContainer.findViewById(R.id.tv_message).setVisibility(View.GONE);
@@ -703,7 +931,7 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
             mSpinnerAEFMap[0] = getSpinnerAEFMapOnBtAddPressed()[0];
             setSpinnerAEFSelection(0);
         } else if (mIsEditBtPressed) {
-            NotebookRecord editRecord = mRecordAdapter.getItem(mSelectedItems.get(0));
+            NotebookRecord editRecord = mRecordAdapter.getItem(mRecordAdapter.getSelectedItems().get(0));
             mSpinnerAEFMap[1] = String.valueOf(editRecord.getAmount());
             setSpinnerAEFSelection(1);
         }
@@ -711,11 +939,60 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
 
     private void restoreSpinnerAEFDate() {
         if (mIsEditBtPressed) {
-            NotebookRecord editRecord = mRecordAdapter.getItem(mSelectedItems.get(0));
+            NotebookRecord editRecord = mRecordAdapter.getItem(mRecordAdapter.getSelectedItems().get(0));
             mSpinnerAEFMap[0] = Utils.getDateFormatInstance(Utils.FormatType.DB_DATE_TIME)
                     .format(editRecord.getDate());
             setSpinnerAEFSelection(0);
         }
+    }
+
+    private void setDayStartOf(Calendar inputCalendar) {
+        inputCalendar.set(Calendar.HOUR_OF_DAY, inputCalendar.getActualMinimum(Calendar.HOUR_OF_DAY));
+        inputCalendar.set(Calendar.MINUTE, inputCalendar.getActualMinimum(Calendar.MINUTE));
+        inputCalendar.set(Calendar.SECOND, inputCalendar.getActualMinimum(Calendar.SECOND));
+        inputCalendar.set(Calendar.MILLISECOND, inputCalendar.getActualMinimum(Calendar.MILLISECOND));
+    }
+
+    private void setWeekStartOf(Calendar inputCalendar) {
+        inputCalendar.set(Calendar.DAY_OF_WEEK, inputCalendar.getActualMinimum(Calendar.DAY_OF_WEEK));
+        setDayStartOf(inputCalendar);
+    }
+
+    private void setMonthStartOf(Calendar inputCalendar) {
+        inputCalendar.set(Calendar.DAY_OF_MONTH, inputCalendar.getActualMinimum(Calendar.DAY_OF_MONTH));
+        setDayStartOf(inputCalendar);
+//        Log.d("RECORD", "MILLISECONDS MIN = " + inputCalendar.getActualMinimum(Calendar.MILLISECOND));
+
+    }
+
+    private void setYearStartOf(Calendar inputCalendar) {
+        inputCalendar.set(Calendar.MONTH, inputCalendar.getActualMinimum(Calendar.MONTH));
+        setMonthStartOf(inputCalendar);
+    }
+
+    private void setDayEndOf(Calendar inputCalendar) {
+//        inputCalendar.set(Calendar.DAY_OF_MONTH, inputCalendar.getActualMaximum(Calendar.DAY_OF_MONTH));
+        inputCalendar.set(Calendar.HOUR_OF_DAY, inputCalendar.getActualMaximum(Calendar.HOUR_OF_DAY));
+        inputCalendar.set(Calendar.MINUTE, inputCalendar.getActualMaximum(Calendar.MINUTE));
+        inputCalendar.set(Calendar.SECOND, inputCalendar.getActualMaximum(Calendar.SECOND));
+        inputCalendar.set(Calendar.MILLISECOND, inputCalendar.getActualMaximum(Calendar.MILLISECOND));
+//        Log.d("RECORD", "MILLISECONDS MAX = " + inputCalendar.getActualMaximum(Calendar.MILLISECOND));
+
+    }
+
+    private void setWeekEndOf(Calendar inputCalendar) {
+        inputCalendar.set(Calendar.DAY_OF_WEEK, inputCalendar.getActualMaximum(Calendar.DAY_OF_WEEK));
+        setDayEndOf(inputCalendar);
+    }
+
+    private void setMonthEndOf(Calendar inputCalendar) {
+        inputCalendar.set(Calendar.DAY_OF_MONTH, inputCalendar.getActualMaximum(Calendar.DAY_OF_MONTH));
+        setDayEndOf(inputCalendar);
+    }
+
+    private void setYearEndOf(Calendar inputCalendar) {
+        inputCalendar.set(Calendar.MONTH, inputCalendar.getActualMaximum(Calendar.MONTH));
+        setMonthEndOf(inputCalendar);
     }
 
     private void setSpinnerAEFSelection(int position) {
@@ -731,47 +1008,125 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
         datePickerDialog.show(requireActivity().getSupportFragmentManager(), getString(titleStringId));
     }
 
+    private Pair<Long, Long> genPair() {
+        long offsetStart = calcZoneOffsetForTime(mFindStartCalendar.getTime().getTime());
+        long offsetEnd = calcZoneOffsetForTime(mFindEndCalendar.getTime().getTime());
+
+        return new Pair<>(mFindStartCalendar.getTime().getTime() + offsetStart,
+                mFindEndCalendar.getTime().getTime() + offsetEnd);
+    }
+
+    private long calcZoneOffsetForTime(long curTime) {
+        return DateTimeZone.forTimeZone(TimeZone.getDefault()).getOffset(curTime);
+    }
+
+    @SuppressLint("RestrictedApi")
+    private void showDateRangePicker() {
+        MaterialDatePicker.Builder<Pair<Long, Long>> rangePickerBuilder = MaterialDatePicker.Builder.dateRangePicker();
+
+        CalendarConstraints.Builder constraintsBuilder = new CalendarConstraints.Builder();
+        constraintsBuilder.setFirstDayOfWeek(Calendar.MONDAY);
+        rangePickerBuilder.setCalendarConstraints(constraintsBuilder.build());
+
+        Pair<Long, Long> pair = genPair();
+        rangePickerBuilder.setSelection(pair);
+        MaterialDatePicker<Pair<Long, Long>> rangePicker = rangePickerBuilder.build();
+
+        rangePicker.show(requireActivity().getSupportFragmentManager(), "");
+        rangePicker.addOnPositiveButtonClickListener(
+                selection -> {
+
+                    Date startDate = new Date(selection.first - calcZoneOffsetForTime(selection.first));
+                    Date endDate = new Date(selection.second - calcZoneOffsetForTime(selection.second));
+
+                    updateCalendarYMD(mFindStartCalendar, startDate);
+                    updateCalendarYMD(mFindEndCalendar, endDate);
+
+                    refreshFindEt();
+                    resetFindResults();
+/*
+                    dateFormat = Utils.getDateFormatInstance(Utils.FormatType.DB_DATE_TIME);
+
+                    DurationFieldType[] durFields = new DurationFieldType[2];
+                    durFields[0] = DurationFieldType.hours();
+                    durFields[1] = DurationFieldType.minutes();
+                    Period period = new Period(timeZoneOffset, PeriodType.forFields(durFields));
+                    int hours = period.getHours();
+                    int minutes = period.getMinutes();
+                    Log.d("RECORD", "TIME ZONE OFFSET: " + String.format(Locale.US, Utils.AGO_FORMAT_PATTERN_HM, hours, minutes));
+                    Log.d("RECORD", "TimeZone   "+TimeZone.getDefault().getDisplayName(false, TimeZone.SHORT)+" Timezone id :: " + TimeZone.getDefault().getID());
+*/
+
+//                    Log.d("RECORD", "-----------------------------------");
+//                    Log.d("RECORD", "INPUT FIRST: " + dateFormat.format(pair.first));
+//                    Log.d("RECORD", "INPUT SECOND: " + dateFormat.format(pair.second));
+//                    Log.d("RECORD", "OUTPUT START: " + dateFormat.format(startDate));
+//                    Log.d("RECORD", "OUTPUT END: " + dateFormat.format(endDate));
+//                    Log.d("RECORD", "CALENDAR START: " + dateFormat.format(mFindStartCalendar.getTime()));
+//                    Log.d("RECORD", "CALENDAR END: " + dateFormat.format(mFindEndCalendar.getTime()));
+                }
+        );
+    }
+
+    private void refreshFindEt() {
+        DateFormat dateFormat = Utils.getDateFormatInstance(Utils.FormatType.RECORD_FIND_ET);
+        mEtFindStartDate.setText(dateFormat.format(mFindStartCalendar.getTime()));
+        mEtFindEndDate.setText(dateFormat.format(mFindEndCalendar.getTime()));
+    }
+
     private void showRecordList(List<NotebookRecord> input) {
         mRecordAdapter.clear();
         mRecordAdapter.addAll(input);
-        mRecordAdapter.notifyDataSetChanged();
         if (mRecordAdapter.isEmpty()) {
             TextView tvMssage = mRootContainer.findViewById(R.id.tv_message);
             tvMssage.setVisibility(View.VISIBLE);
             tvMssage.setText(getResources().getString(R.string.tv_message_list_empty));
+        } else {
+            mRecordAdapter.notifyDataSetChanged();
         }
     }
 
     private void showTimePickerDialog(int titleStringId, Calendar initCalendar, Consumer<Calendar> onTimeSetAction) {
         TimePickerFragment timePickerDialog = new TimePickerFragment(initCalendar, titleStringId);
         timePickerDialog.setOnTimeSetAction(onTimeSetAction);
-        timePickerDialog.show(MainActivity.mainInstance.getSupportFragmentManager(), getString(titleStringId));
+        timePickerDialog.show(getAppMainActivity().getSupportFragmentManager(), getString(titleStringId));
+    }
+
+    private void showTotals() {
+        View totalsContainer = mRootContainer.findViewById(R.id.totals_container);
+        totalsContainer.setVisibility(View.VISIBLE);
+    }
+
+    private void showTotals(double[] totals) {
+        View totalsContainer = mRootContainer.findViewById(R.id.totals_container);
+        TextView tvItemCount = totalsContainer.findViewById(R.id.tv_items_count);
+        TextView tvMinValue = totalsContainer.findViewById(R.id.tv_min_value);
+        TextView tvMaxValue = totalsContainer.findViewById(R.id.tv_max_value);
+        TextView tvAverageValue = totalsContainer.findViewById(R.id.tv_average_value);
+        TextView tvTotalValue = totalsContainer.findViewById(R.id.tv_total_value);
+
+        tvItemCount.setText(Utils.formatDouble(totals[0], 0));
+        tvMinValue.setText(Utils.formatDouble(totals[1], 2));
+        tvMaxValue.setText(Utils.formatDouble(totals[2], 2));
+        tvAverageValue.setText(Utils.formatDouble(totals[3], 2));
+        tvTotalValue.setText(Utils.formatDouble(totals[4], 2));
+
+        totalsContainer.setVisibility(View.VISIBLE);
+    }
+
+    private void updateCalendarYMD(Calendar toUpdate, Date update) {
+        Calendar calendarUpdate = Calendar.getInstance();
+        calendarUpdate.setTime(update);
+
+        updateCalendarYMD(toUpdate, calendarUpdate.get(Calendar.YEAR),
+                calendarUpdate.get(Calendar.MONTH),
+                calendarUpdate.get(Calendar.DAY_OF_MONTH));
+//        hideTotals();
+//        mRecordAdapter.clear();
+//        mRecordAdapter.notifyDataSetChanged();
     }
 
     private static class DateETWatcher implements TextWatcher {
-
-        private static class TextWatcherParamHolder {
-            private static TextWatcherParamHolder instance;
-
-            private static TextWatcherParamHolder getInstance() {
-                if (instance == null) {
-                    instance = new TextWatcherParamHolder();
-                }
-                return instance;
-            }
-
-            private CharSequence charSequence;
-            private int start;
-            private int prevCharQty;
-            private int nextCharQty;
-
-            public void setParams(CharSequence charSequence, int start, int prevCharQty, int nextCharQty) {
-                this.charSequence = charSequence;
-                this.start = start;
-                this.prevCharQty = prevCharQty;
-                this.nextCharQty = nextCharQty;
-            }
-        }
 
         private enum BeforeTextChangedEvents {
             MULTIPLE_CHARS_EDITED(inputParamHolder -> {
@@ -792,6 +1147,12 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
 
             }),
             ;
+
+            static boolean isAtLeastOneTrue(TextWatcherParamHolder paramHolder) {
+                return Arrays.stream(BeforeTextChangedEvents.values())
+                        .anyMatch(beforeTextChangedEvent -> beforeTextChangedEvent.isTrue(paramHolder));
+            }
+
             private final Predicate<TextWatcherParamHolder> eventCondition;
 
             BeforeTextChangedEvents(Predicate<TextWatcherParamHolder> eventCondition) {
@@ -800,11 +1161,6 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
 
             boolean isTrue(TextWatcherParamHolder paramHolder) {
                 return this.eventCondition.test(paramHolder);
-            }
-
-            static boolean isAtLeastOneTrue(TextWatcherParamHolder paramHolder) {
-                return Arrays.stream(BeforeTextChangedEvents.values())
-                        .anyMatch(beforeTextChangedEvent -> beforeTextChangedEvent.isTrue(paramHolder));
             }
         }
 
@@ -838,6 +1194,12 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
                 return false;
             }),
             ;
+
+            static boolean isAtLeastOneTrue(TextWatcherParamHolder paramHolder) {
+                return Arrays.stream(OnTextChangedEvents.values())
+                        .anyMatch(onTextChangedEvent -> onTextChangedEvent.isTrue(paramHolder));
+            }
+
             private final Predicate<TextWatcherParamHolder> eventCondition;
 
             OnTextChangedEvents(Predicate<TextWatcherParamHolder> eventCondition) {
@@ -846,11 +1208,6 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
 
             boolean isTrue(TextWatcherParamHolder paramHolder) {
                 return this.eventCondition.test(paramHolder);
-            }
-
-            static boolean isAtLeastOneTrue(TextWatcherParamHolder paramHolder) {
-                return Arrays.stream(OnTextChangedEvents.values())
-                        .anyMatch(onTextChangedEvent -> onTextChangedEvent.isTrue(paramHolder));
             }
         }
 
@@ -917,6 +1274,29 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
                 isCallbackSkip = false;
             }
         }
+
+        private static class TextWatcherParamHolder {
+            private static TextWatcherParamHolder instance;
+
+            private static TextWatcherParamHolder getInstance() {
+                if (instance == null) {
+                    instance = new TextWatcherParamHolder();
+                }
+                return instance;
+            }
+
+            private CharSequence charSequence;
+            private int nextCharQty;
+            private int prevCharQty;
+            private int start;
+
+            public void setParams(CharSequence charSequence, int start, int prevCharQty, int nextCharQty) {
+                this.charSequence = charSequence;
+                this.start = start;
+                this.prevCharQty = prevCharQty;
+                this.nextCharQty = nextCharQty;
+            }
+        }
     }
 
     public static class DatePickerFragment extends DialogFragment implements DatePickerDialog.OnDateSetListener {
@@ -939,7 +1319,7 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
             int month = calendar.get(Calendar.MONTH);
             int day = calendar.get(Calendar.DAY_OF_MONTH);
 
-            DatePickerDialog dialog = new DatePickerDialog(MainActivity.mainInstance, this, year, month, day);
+            DatePickerDialog dialog = new DatePickerDialog(getContext(), this, year, month, day);
             dialog.setTitle(this.titleId);
 
             return dialog;
@@ -974,7 +1354,7 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
             int hour = calendar.get(Calendar.HOUR_OF_DAY);
             int minute = calendar.get(Calendar.MINUTE);
 
-            TimePickerDialog dialog = new TimePickerDialog(MainActivity.mainInstance, this, hour, minute, false);
+            TimePickerDialog dialog = new TimePickerDialog(getContext(), this, hour, minute, false);
             dialog.setTitle(this.titleId);
             return dialog;
         }

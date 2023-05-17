@@ -8,13 +8,15 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="colorGreen">#96c896</color>
+    <color name="btnsColor">#6200EE</color>
     <!-- Text color for the details of the earthquake in the list item -->
     <color name="list_item_selected">#B4BAC0</color>
 
     <!-- Text color for the primary location of the earthquake in the list item -->
     <color name="category_text_color">#2B3D4D</color>
     <color name="tab_text_inactive">#A8A19E</color>
-    <color name="time_date_text_color">#B4BAC0</color>
+    <color name="tv_time_date_text_color">#B4BAC0</color>
     <color name="tv_rec_quant_color">#B4BAC0</color>
     <color name="tv_last_rec_ago_color">#B4BAC0</color>
 
