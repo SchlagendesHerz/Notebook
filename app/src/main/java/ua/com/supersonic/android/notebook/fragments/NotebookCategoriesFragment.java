@@ -188,6 +188,11 @@ public class NotebookCategoriesFragment extends Fragment implements View.OnClick
                     mCurItemButtons.findViewById(R.id.bt_edit).setVisibility(View.VISIBLE);
                     mCurItemButtons.findViewById(R.id.bt_show_records).setVisibility(View.VISIBLE);
                     enableViewPagerSwipe();
+
+                    int lastVisibleItemPosition = mLvCategories.getFirstVisiblePosition() + mLvCategories.getChildCount() - 1;
+                    if (i == lastVisibleItemPosition || i == lastVisibleItemPosition - 1) {
+                        mLvCategories.smoothScrollToPosition(i);
+                    }
                 } else {
                     mCurItemButtons.setVisibility(View.GONE);
                     disableViewPagerSwipe();

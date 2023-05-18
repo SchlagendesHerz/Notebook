@@ -395,6 +395,12 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
                     mCurItemButtons.findViewById(R.id.bt_edit).setVisibility(View.INVISIBLE);
                 } else if (selectedItems.size() == 1) {
                     mCurItemButtons.findViewById(R.id.bt_edit).setVisibility(View.VISIBLE);
+                    int lastVisibleItemPosition = mLvRecords.getFirstVisiblePosition()
+                            + mLvRecords.getChildCount() - 1;
+                    if (i == lastVisibleItemPosition || i == lastVisibleItemPosition - 1) {
+                        mLvRecords.smoothScrollToPosition(i);
+                    }
+
                 } else {
                     mCurItemButtons.setVisibility(View.GONE);
                 }

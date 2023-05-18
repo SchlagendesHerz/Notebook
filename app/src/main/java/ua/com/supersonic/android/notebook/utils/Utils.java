@@ -38,9 +38,8 @@ public class Utils {
 
     public static final String HTTP_GET_METHOD = "GET";
     public static final String HTTP_POST_METHOD = "POST";
-
-    private static final String AGO_FORMAT_PATTERN_D = "%dd ago";
     public static final String AGO_FORMAT_PATTERN_HM = "%dh; %dm ago";
+    private static final String AGO_FORMAT_PATTERN_D = "%dd ago";
     private static final String AGO_FORMAT_PATTERN_MOD = "%dm; %dd ago";
     private static final String AGO_FORMAT_PATTERN_YMD = "%dy;%dm;%dd ago";
 
@@ -51,81 +50,17 @@ public class Utils {
     private static final String RAW_TYPE = "raw";
     private static final String RESOURCE_PREFIX = ContentResolver.SCHEME_ANDROID_RESOURCE + "://";
     private static final String TAG = Utils.class.getSimpleName().toUpperCase();
-
+    private static SimpleDateFormat dateFormat;
     private static Toast mToast;
 
-    public enum FormatType {
-        DB_DATE_TIME("yyyy-MM-dd HH:mm:ss"),
-        RECORD_FIND_ET("yyyy-MM-dd"),
-        RECORD_FIND_TIME("HH:mm"),
-        RECORD_ITEM_DATE("MMM d, yyyy"),
-        RECORD_ITEM_TIME("E h:mm a");
-        private final String pattern;
+    public static void copyFile(FileInputStream fromFile, FileOutputStream toFile) throws IOException {
 
-        FormatType(String pattern) {
-            this.pattern = pattern;
+        try (
+                FileChannel fromChannel = fromFile.getChannel();
+                FileChannel toChannel = toFile.getChannel()
+        ) {
+            fromChannel.transferTo(0, fromChannel.size(), toChannel);
         }
-
-        public String getPattern() {
-            return pattern;
-        }
-
-    }
-
-    private static SimpleDateFormat dateFormat;
-
-    public static DateFormat getDateFormatInstance(FormatType type) {
-        if (dateFormat == null) dateFormat = new SimpleDateFormat();
-        dateFormat.applyPattern(type.getPattern());
-        return dateFormat;
-    }
-
-    public static void hideKeyboard(@NonNull Activity activity) {
-//        Log.d(TAG, "hideKeyBoard invoked");
-        InputMethodManager imm = (InputMethodManager) activity.getSystemService(Activity.INPUT_METHOD_SERVICE);
-//        //Find the currently focused view, so we can grab the correct window token from it.
-        View view = activity.getCurrentFocus();
-//        //If no view currently has focus, create a new one, just so we can grab a window token from it
-        if (view == null) {
-//            Log.d(TAG, "view = null");
-            view = new View(activity);
-        }
-        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-    }
-
-    public static View getViewByPosition(int pos, ListView listView) {
-        final int firstListItemPosition = listView.getFirstVisiblePosition();
-        final int lastListItemPosition = firstListItemPosition + listView.getChildCount() - 1;
-
-        if (pos < firstListItemPosition || pos > lastListItemPosition) {
-            return listView.getAdapter().getView(pos, null, listView);
-        } else {
-            final int childIndex = pos - firstListItemPosition;
-            return listView.getChildAt(childIndex);
-        }
-    }
-
-    public static SharedPreferences getSharedPreferences(Context appContext) {
-        String sharedPrefFileName = appContext.getPackageName() + "." + MainActivity.PREFERENCE_FILE_KEY;
-        return appContext.getSharedPreferences(sharedPrefFileName, Context.MODE_PRIVATE);
-    }
-
-    public static void showToastMessage(String message, Context context) {
-        if (mToast != null) mToast.cancel();
-        mToast = Toast.makeText(context, message, Toast.LENGTH_LONG);
-        mToast.show();
-    }
-
-    public static void showKeyboardOnFocus(View view, Context appContext) {
-        view.requestFocus();
-        InputMethodManager imm = (InputMethodManager) appContext.getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT);
-    }
-
-    public static String formatDouble(double input, int round) {
-        return Math.abs(input) - Math.abs(((int) input)) < Math.pow(10, -1 * round)
-                ? String.format(Locale.US, "%d", (int) input)
-                : String.format(Locale.US, "%." + round + "f", input);
     }
 
     public static String formatAgoDate(Date input) {
@@ -169,14 +104,16 @@ public class Utils {
                 : String.format(Locale.US, AGO_FORMAT_PATTERN_YMD, years, months, days);
     }
 
-    public static void copyFile(FileInputStream fromFile, FileOutputStream toFile) throws IOException {
+    public static String formatDouble(double input, int round) {
+        return Math.abs(input) - Math.abs(((int) input)) < Math.pow(10, -1 * round)
+                ? String.format(Locale.US, "%d", (int) input)
+                : String.format(Locale.US, "%." + round + "f", input);
+    }
 
-        try (
-                FileChannel fromChannel = fromFile.getChannel();
-                FileChannel toChannel = toFile.getChannel()
-        ) {
-            fromChannel.transferTo(0, fromChannel.size(), toChannel);
-        }
+    public static DateFormat getDateFormatInstance(FormatType type) {
+        if (dateFormat == null) dateFormat = new SimpleDateFormat();
+        dateFormat.applyPattern(type.getPattern());
+        return dateFormat;
     }
 
     public static int getRawResId(Context context, String fileName) {
@@ -194,6 +131,36 @@ public class Utils {
 
     public static Uri getRawResUri(Context context, int resId) {
         return Uri.parse(getRawResPath(context, resId));
+    }
+
+    public static SharedPreferences getSharedPreferences(Context appContext) {
+        String sharedPrefFileName = appContext.getPackageName() + "." + MainActivity.PREFERENCE_FILE_KEY;
+        return appContext.getSharedPreferences(sharedPrefFileName, Context.MODE_PRIVATE);
+    }
+
+    public static View getViewByPosition(int pos, ListView listView) {
+        final int firstListItemPosition = listView.getFirstVisiblePosition();
+        final int lastListItemPosition = firstListItemPosition + listView.getChildCount() - 1;
+
+        if (pos < firstListItemPosition || pos > lastListItemPosition) {
+            return listView.getAdapter().getView(pos, null, listView);
+        } else {
+            final int childIndex = pos - firstListItemPosition;
+            return listView.getChildAt(childIndex);
+        }
+    }
+
+    public static void hideKeyboard(@NonNull Activity activity) {
+//        Log.d(TAG, "hideKeyBoard invoked");
+        InputMethodManager imm = (InputMethodManager) activity.getSystemService(Activity.INPUT_METHOD_SERVICE);
+//        //Find the currently focused view, so we can grab the correct window token from it.
+        View view = activity.getCurrentFocus();
+//        //If no view currently has focus, create a new one, just so we can grab a window token from it
+        if (view == null) {
+//            Log.d(TAG, "view = null");
+            view = new View(activity);
+        }
+        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
     }
 
     public static String makeHttpRequest(URL url, String methodType) throws IOException {
@@ -229,5 +196,35 @@ public class Utils {
             builder.delete(builder.length() - 1, builder.length());
         }
         return builder.toString();
+    }
+
+    public static void showKeyboardOnFocus(View view, Context appContext) {
+        view.requestFocus();
+        InputMethodManager imm = (InputMethodManager) appContext.getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT);
+    }
+
+    public static void showToastMessage(String message, Context context) {
+        if (mToast != null) mToast.cancel();
+        mToast = Toast.makeText(context, message, Toast.LENGTH_LONG);
+        mToast.show();
+    }
+
+    public enum FormatType {
+        DB_DATE_TIME("yyyy-MM-dd HH:mm:ss"),
+        RECORD_FIND_ET("yyyy-MM-dd"),
+        RECORD_FIND_TIME("HH:mm"),
+        RECORD_ITEM_DATE("MMM d, yyyy"),
+        RECORD_ITEM_TIME("E h:mm a");
+        private final String pattern;
+
+        FormatType(String pattern) {
+            this.pattern = pattern;
+        }
+
+        public String getPattern() {
+            return pattern;
+        }
+
     }
 }
