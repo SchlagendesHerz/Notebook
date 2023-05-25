@@ -2,6 +2,8 @@ package ua.com.supersonic.android.notebook.fragments;
 
 import android.annotation.SuppressLint;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -12,6 +14,7 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.core.view.MotionEventCompat;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager.widget.ViewPager;
@@ -19,7 +22,10 @@ import androidx.viewpager.widget.ViewPager;
 import com.google.android.material.tabs.TabLayout;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import ua.com.supersonic.android.notebook.db.dropbox.DropboxDBSynchronizer;
 import ua.com.supersonic.android.notebook.MainActivity;
@@ -36,13 +42,13 @@ public class NotebookCategoriesFragment extends Fragment implements View.OnClick
         AdapterView.OnItemClickListener, ViewPager.OnPageChangeListener, View.OnTouchListener {
 
     private CategoryAdapter mCategoryAdapter;
+    private AsyncExecutor<String, Void, Void> mAsyncExecutor;
 
+    private SwipeableConstraintLayout mRootContainer;
     private ListView mLvCategories;
     private EditText mEtAEFCategory;
     private View mEtContainer;
-
     private View mCurItemButtons;
-    private SwipeableConstraintLayout mRootContainer;
 
     private boolean mIsAddBtPressed;
     private boolean mIsEditBtPressed;
@@ -191,7 +197,7 @@ public class NotebookCategoriesFragment extends Fragment implements View.OnClick
 
                     int lastVisibleItemPosition = mLvCategories.getFirstVisiblePosition() + mLvCategories.getChildCount() - 1;
                     if (i == lastVisibleItemPosition || i == lastVisibleItemPosition - 1) {
-                        mLvCategories.smoothScrollToPosition(i);
+                        mLvCategories.smoothScrollToPosition(lastVisibleItemPosition);
                     }
                 } else {
                     mCurItemButtons.setVisibility(View.GONE);
@@ -240,17 +246,17 @@ public class NotebookCategoriesFragment extends Fragment implements View.OnClick
             case MotionEvent.ACTION_UP:
                 if (isUpSwipe(mRootContainer.getDownPointX(), mRootContainer.getDownPointY(), curX, curY)) {
 //                    Log.d("ON_TOUCH", "VERTICAL SWIPE DETECTED");
-                    getAppMainActivity().showDialogBox(R.string.dialog_box_msg_dropbox_upload,
+                    Utils.showDialogBox(getContext(), R.string.dialog_box_msg_dropbox_upload,
                             (dialogInterface, i) -> {
                                 dialogInterface.dismiss();
-                                DropboxDBSynchronizer.getInstance(getContext()).performDropboxExportTask();
+                                performDropboxExport();
                             });
 
                 } else if (isDownSwipe(mRootContainer.getDownPointX(), mRootContainer.getDownPointY(), curX, curY)) {
-                    getAppMainActivity().showDialogBox(R.string.dialog_box_msg_dropbox_download,
+                    Utils.showDialogBox(getContext(), R.string.dialog_box_msg_dropbox_download,
                             (dialogInterface, i) -> {
                                 dialogInterface.dismiss();
-                                DropboxDBSynchronizer.getInstance(getContext()).performDropboxImportTask();
+                                performDropboxImport();
                             });
                 }
                 break;
@@ -326,7 +332,7 @@ public class NotebookCategoriesFragment extends Fragment implements View.OnClick
         String readValue = mEtAEFCategory.getText()
                 .toString().trim().toUpperCase();
         if (readValue.isEmpty()) {
-            Utils.showToastMessage(getString(R.string.invalid_category_name_message), getContext());
+            Utils.showToastMessage(getString(R.string.error_msg_invalid_category_name_input), getContext());
             restoreEtAEFCategoryName();
             return null;
         }
@@ -365,6 +371,80 @@ public class NotebookCategoriesFragment extends Fragment implements View.OnClick
 
         getAppMainActivity().getViewPager().addOnPageChangeListener(this);
         disableViewPagerSwipe();
+
+//        Consumer<Void[]> errorAction = args -> {
+//
+//            StringBuilder builder = new StringBuilder(getString(R.string.error_msg_exception_occurred));
+//            String errorMsg = DropboxDBSynchronizer.getInstance(getContext()).getMessage();
+//            if (errorMsg == null) errorMsg = mAsyncExecutor.getErrorMsg();
+//            builder.append(errorMsg);
+//            Utils.showToastMessage(builder.toString(), getContext());
+//        };
+        mAsyncExecutor = new AsyncExecutor<>();
+    }
+
+    private void performDropboxExport() {
+        Predicate<String[]> mainExportAction = args -> DropboxDBSynchronizer.
+                getInstance(getContext())
+                .performDropboxExport(args[0], args[1]);
+
+        Consumer<Void[]> postExportAction = args -> Utils
+                .showToastMessage(getString(R.string.msg_dropbox_export_success), getContext());
+
+        Consumer<Void[]> errorExportAction = args -> {
+            StringBuilder stringBuilder = new StringBuilder(getString(R.string.error_msg_exception_occurred));
+            String errorMsg = DropboxDBSynchronizer.getInstance(getContext()).getMessage();
+            if (errorMsg == null) errorMsg = mAsyncExecutor.getErrorMsg();
+            stringBuilder.append("\n")
+                    .append(errorMsg)
+                    .append("\n")
+                    .append(getString(R.string.msg_repeat_dropbox_upload));
+
+            Utils.showDialogBox(getContext(), stringBuilder.toString(),
+                    (dialogInterface, i) -> {
+                        dialogInterface.dismiss();
+//                        performDropboxExport();
+                        mAsyncExecutor.execute();
+
+                    });
+//            Utils.showToastMessage(stringBuilder.toString(), getContext());
+        };
+        mAsyncExecutor.setMainAction(mainExportAction, DBConstants.DB_NAME, getString(R.string.dropbox_app_name));
+        mAsyncExecutor.setPostAction(postExportAction);
+        mAsyncExecutor.setErrorAction(errorExportAction);
+        mAsyncExecutor.execute();
+    }
+
+    private void performDropboxImport() {
+        Predicate<String[]> mainImportAction = args -> DropboxDBSynchronizer.
+                getInstance(getContext())
+                .performDropboxImport(args[0], args[1]);
+
+        Consumer<Void[]> postImportAction = args -> Utils
+                .showToastMessage(getString(R.string.msg_dropbox_import_success), getContext());
+
+        Consumer<Void[]> errorImportAction = args -> {
+            StringBuilder msgBuilder = new StringBuilder(getString(R.string.error_msg_exception_occurred));
+            String errorMsg = DropboxDBSynchronizer.getInstance(getContext()).getMessage();
+            if (errorMsg == null) errorMsg = mAsyncExecutor.getErrorMsg();
+            msgBuilder.append("\n")
+                    .append(errorMsg)
+                    .append("\n")
+                    .append(getString(R.string.msg_repeat_dropbox_download));
+
+            Utils.showDialogBox(getContext(), msgBuilder.toString(),
+                    (dialogInterface, i) -> {
+                        dialogInterface.dismiss();
+//                        performDropboxImport();
+                        mAsyncExecutor.execute();
+
+                    });
+//            Utils.showToastMessage(stringBuilder.toString(), getContext());
+        };
+        mAsyncExecutor.setMainAction(mainImportAction, DBConstants.DB_NAME, getString(R.string.dropbox_app_name));
+        mAsyncExecutor.setPostAction(postImportAction);
+        mAsyncExecutor.setErrorAction(errorImportAction);
+        mAsyncExecutor.execute();
     }
 
     private MainActivity getAppMainActivity() {
@@ -436,5 +516,83 @@ public class NotebookCategoriesFragment extends Fragment implements View.OnClick
             tvMssage.setVisibility(View.VISIBLE);
             tvMssage.setText(getResources().getString(R.string.tv_message_list_empty));
         }
+    }
+
+    public static class AsyncExecutor<MA, PA, EA> {
+        private Predicate<MA[]> mainAction;
+        private Consumer<PA[]> postAction;
+        private Consumer<EA[]> errorAction;
+
+        private MA[] mainArgs;
+        private PA[] postArgs;
+        private EA[] errorArgs;
+
+        private Handler handler;
+        private String errorMsg;
+
+        @SuppressLint("HandlerLeak")
+        public AsyncExecutor() {
+            handler = new Handler() {
+                @Override
+                public void handleMessage(@NonNull Message msg) {
+                    if (msg.what == 1) {
+                        if (postAction != null) {
+                            postAction.accept(postArgs);
+                        }
+                    } else if (msg.what == 0) {
+                        if (errorAction != null) {
+                            errorAction.accept(errorArgs);
+                        }
+                    }
+                }
+            };
+        }
+
+        public String getErrorMsg() {
+            return errorMsg;
+        }
+
+        public void setMainAction(Predicate<MA[]> mainAction, MA... mainArgs) {
+            this.mainAction = mainAction;
+            this.mainArgs = mainArgs;
+        }
+
+        public void setPostAction(Consumer<PA[]> postAction, PA... postArgs) {
+            this.postAction = postAction;
+            this.postArgs = postArgs;
+        }
+
+        public void setErrorAction(Consumer<EA[]> errorAction, EA... errorArgs) {
+            this.errorAction = errorAction;
+            this.errorArgs = errorArgs;
+        }
+
+        public void execute() {
+            new Thread() {
+                @Override
+                public void run() {
+                    if (mainAction != null) {
+                        try {
+                            if (mainAction.test(mainArgs)) {
+                                if (postAction != null) {
+                                    handler.sendEmptyMessage(1);
+                                }
+                            } else {
+                                if (errorAction != null) {
+                                    handler.sendEmptyMessage(0);
+                                }
+                            }
+                        } catch (Exception ex) {
+                            if (errorAction != null) {
+                                errorMsg = ex.getMessage();
+                                handler.sendEmptyMessage(0);
+                            }
+                        }
+                    }
+                }
+            }.start();
+
+        }
+
     }
 }

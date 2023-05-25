@@ -1,8 +1,10 @@
 package ua.com.supersonic.android.notebook.utils;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.icu.util.Calendar;
 import android.net.Uri;
@@ -33,6 +35,7 @@ import java.util.Date;
 import java.util.Locale;
 
 import ua.com.supersonic.android.notebook.MainActivity;
+import ua.com.supersonic.android.notebook.R;
 
 public class Utils {
 
@@ -208,6 +211,19 @@ public class Utils {
         if (mToast != null) mToast.cancel();
         mToast = Toast.makeText(context, message, Toast.LENGTH_LONG);
         mToast.show();
+    }
+
+    public static void showDialogBox(Context context, int msgId, DialogInterface.OnClickListener yesBtListener) {
+        showDialogBox(context, context.getString(msgId), yesBtListener);
+    }
+
+    public static void showDialogBox(Context context, String msg, DialogInterface.OnClickListener yesBtListener) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setMessage(msg)
+                .setCancelable(false)
+                .setPositiveButton(R.string.dialog_box_yes_bt, yesBtListener)
+                .setNegativeButton(R.string.dialog_box_no_bt, (dialogInterface, i) -> dialogInterface.dismiss())
+                .show();
     }
 
     public enum FormatType {

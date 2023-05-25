@@ -165,14 +165,21 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
                     mRecordAdapter.notifyDataSetChanged();
                     DBManager.getInstance(getContext()).updateRecord(editRecord);
 //                    DropboxDBSynchronizer.getInstance().performDropboxExportTask();
+                    resetEdit();
 
-                    mIsEditBtPressed = false;
-                    mWidgetsContainer.setVisibility(View.GONE);
                     mLvRecords.setVisibility(View.VISIBLE);
-                    resetBtAdd();
                     resetSelectedItems();
                     Utils.hideKeyboard(getAppMainActivity());
-                    enableViewPagerSwipe();
+                    if (mFindBtMode != 0) {
+//                        mRootContainer.setInterceptOff();
+                        if (mCurSwipeRangeIdx == 0) {
+                            enableViewPagerSwipe();
+                        }
+                        mDateSelector.setVisibility(View.VISIBLE);
+                        setTotals(calcRecordsTotals());
+                    } else {
+                        enableViewPagerSwipe();
+                    }
                 } else {
                     resetSelectedItems();
                     if (mIsAddBtPressed) {
@@ -212,6 +219,8 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
                         btFindPressedFirstTime();
                         enableViewPagerSwipe();
                         break;
+
+//                  show totals first time
                     case 1:
                         if (mFindStartCalendar.compareTo(mFindEndCalendar) < 0) {
                             mRecordAdapter.clear();
@@ -230,16 +239,26 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
                             }
 
                         } else {
-                            Utils.showToastMessage(getString(R.string.invalid_time_period_message), getContext());
+                            Utils.showToastMessage(getString(R.string.error_msg_invalid_time_period_input), getContext());
 
                         }
                         break;
+
+//                  show totals without DB fetch
                     case 2:
+                        if (isEditBtPressed()) {
+                            resetEdit();
+                            mDateSelector.setVisibility(View.VISIBLE);
+                            mLvRecords.setVisibility(View.VISIBLE);
+                            break;
+                        }
                         mLvRecords.setVisibility(View.GONE);
                         showTotals();
                         mFindBtMode = 3;
                         mRootContainer.setInterceptOn();
                         break;
+
+//                  show list view
                     case 3:
                         hideTotals();
                         mRecordAdapter.notifyDataSetChanged();
@@ -275,9 +294,11 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
                     for (NotebookRecord recordToDelete : listToDelete) {
                         mRecordAdapter.remove(recordToDelete);
                     }
-                    mRecordAdapter.notifyDataSetChanged();
                     DBManager.getInstance(getContext()).deleteRecords(listToDelete);
-//                    DropboxDBSynchronizer.getInstance().performDropboxExportTask();
+                    mRecordAdapter.notifyDataSetChanged();
+                    if (mFindBtMode != 0) {
+                        setTotals(calcRecordsTotals());
+                    }
                 }
                 resetSelectedItems();
                 break;
@@ -298,7 +319,7 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
 //                onFocusChange(mEtFindStartDate, false);
 //                onFocusChange(mEtFindEndDate, false);
                 if (mFindStartCalendar.compareTo(mFindEndCalendar) > 0) {
-                    Utils.showToastMessage(getString(R.string.invalid_time_period_message), getContext());
+                    Utils.showToastMessage(getString(R.string.error_msg_invalid_time_period_input), getContext());
                 } else {
                     showDateRangePicker();
                     mFindBtMode = 1;
@@ -312,6 +333,12 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
 //                showDatePickerDialog(R.string.start_date_picker_dialog_title, mFindStartCalendar, onDateSetAction);
                 break;
         }
+    }
+
+    private void resetEdit() {
+        mIsEditBtPressed = false;
+        mWidgetsContainer.setVisibility(View.GONE);
+        resetBtAdd();
     }
 
     private MainActivity getAppMainActivity() {
@@ -366,7 +393,7 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
                             mEtCache = null;
                     }
                 } catch (ParseException ex) {
-                    Utils.showToastMessage(getString(R.string.invalid_date_field_message), getContext());
+                    Utils.showToastMessage(getString(R.string.error_msg_invalid_date_input), getContext());
                     ((EditText) view).setText(mEtCache);
                     mEtCache = null;
                 }
@@ -398,7 +425,7 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
                     int lastVisibleItemPosition = mLvRecords.getFirstVisiblePosition()
                             + mLvRecords.getChildCount() - 1;
                     if (i == lastVisibleItemPosition || i == lastVisibleItemPosition - 1) {
-                        mLvRecords.smoothScrollToPosition(i);
+                        mLvRecords.smoothScrollToPosition(lastVisibleItemPosition);
                     }
 
                 } else {
@@ -485,7 +512,7 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
                             mCurSwipeRangeIdx--;
                         }
                         handleVerticalRangeSelectSwipe();
-//                  Other buttons ("LIST ALL", "EDIT") pressed
+//                  Other buttons ("LIST ALL", "ADD") pressed
                     } else
 //                      Swipe down
                         if (curY > mRootContainer.getDownPointY()) {
@@ -671,13 +698,14 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
         mLvRecords.setVisibility(View.GONE);
         mWidgetsContainer.setVisibility(View.VISIBLE);
         mIsAddBtPressed = true;
-        mFindBtMode = 0;
 //        MainActivity.mainInstance.showToastMessage(Arrays.toString(mSpinnerMap));
         Utils.showKeyboardOnFocus(mEtAEFRecord, requireContext());
     }
 
     private void btEditPressedFirstTime() {
 //        mSpinnerAdapter.clear();
+        Log.d("APP", "IS INTERCEPT ON = " + mRootContainer.isInterceptOn());
+
         disableViewPagerSwipe();
         mSpinnerAEFAdapter.addAll(getRecordFieldsOnBtEditPressed());
         mSpinnerAEFAdapter.notifyDataSetChanged();
@@ -695,7 +723,7 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
 
         mIsEditBtPressed = true;
         mIsAddBtPressed = false;
-        mFindBtMode = 0;
+//        mFindBtMode = 0;
 //        MainActivity.mainInstance.showToastMessage(Arrays.toString(mSpinnerMap));
         Utils.showKeyboardOnFocus(mEtAEFRecord, requireContext());
     }
@@ -771,7 +799,7 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
             if (mIsAddBtPressed) return Double.parseDouble(mSpinnerAEFMap[0]);
             else if (mIsEditBtPressed) return Double.parseDouble(mSpinnerAEFMap[1]);
         } catch (NumberFormatException e) {
-            Utils.showToastMessage(getString(R.string.invalid_amount_field_message), getContext());
+            Utils.showToastMessage(getString(R.string.error_msg_invalid_amount_input), getContext());
             restoreSpinnerAEFAmount();
         }
         return null;
@@ -783,7 +811,7 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
                 return Utils.getDateFormatInstance(Utils.FormatType.DB_DATE_TIME)
                         .parse(mSpinnerAEFMap[0]);
         } catch (ParseException e) {
-            Utils.showToastMessage(getString(R.string.invalid_date_field_message), getContext());
+            Utils.showToastMessage(getString(R.string.error_msg_invalid_date_input), getContext());
             restoreSpinnerAEFDate();
         }
         return null;
@@ -907,19 +935,21 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
     }
 
     private void resetSelectedItems() {
-        List<Integer> selectedItems = mRecordAdapter.getSelectedItems();
-        if (!selectedItems.isEmpty()) {
-            View curListItem;
-            for (Integer pos : selectedItems) {
-                curListItem = Utils.getViewByPosition(pos, mLvRecords);
-                curListItem.setBackgroundColor(getResources().getColor(R.color.white));
-                ((TextView) (curListItem.findViewById(R.id.tv_date))).setTextColor(getResources().getColor(R.color.tv_time_date_text_color));
-                ((TextView) (curListItem.findViewById(R.id.tv_time))).setTextColor(getResources().getColor(R.color.tv_time_date_text_color));
-                ((TextView) (curListItem.findViewById(R.id.tv_ago))).setTextColor(getResources().getColor(R.color.tv_time_date_text_color));
-                ((TextView) (curListItem.findViewById(R.id.tv_amount))).setTextColor(getResources().getColor(R.color.tv_time_date_text_color));
-            }
-            selectedItems.clear();
-        }
+//        List<Integer> selectedItems = mRecordAdapter.getSelectedItems();
+//        if (!selectedItems.isEmpty()) {
+//            View curListItem;
+//            for (Integer pos : selectedItems) {
+//                curListItem = Utils.getViewByPosition(pos, mLvRecords);
+//                curListItem.setBackgroundColor(getResources().getColor(R.color.white));
+//                ((TextView) (curListItem.findViewById(R.id.tv_date))).setTextColor(getResources().getColor(R.color.tv_time_date_text_color));
+//                ((TextView) (curListItem.findViewById(R.id.tv_time))).setTextColor(getResources().getColor(R.color.tv_time_date_text_color));
+//                ((TextView) (curListItem.findViewById(R.id.tv_ago))).setTextColor(getResources().getColor(R.color.tv_time_date_text_color));
+//                ((TextView) (curListItem.findViewById(R.id.tv_amount))).setTextColor(getResources().getColor(R.color.tv_time_date_text_color));
+//            }
+//            selectedItems.clear();
+//        }
+        mRecordAdapter.getSelectedItems().clear();
+        mRecordAdapter.notifyDataSetChanged();
         mCurItemButtons.setVisibility(View.GONE);
         mRootContainer.findViewById(R.id.tv_message).setVisibility(View.GONE);
     }
@@ -1103,21 +1133,23 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
         totalsContainer.setVisibility(View.VISIBLE);
     }
 
-    private void showTotals(double[] totals) {
-        View totalsContainer = mRootContainer.findViewById(R.id.totals_container);
-        TextView tvItemCount = totalsContainer.findViewById(R.id.tv_items_count);
-        TextView tvMinValue = totalsContainer.findViewById(R.id.tv_min_value);
-        TextView tvMaxValue = totalsContainer.findViewById(R.id.tv_max_value);
-        TextView tvAverageValue = totalsContainer.findViewById(R.id.tv_average_value);
-        TextView tvTotalValue = totalsContainer.findViewById(R.id.tv_total_value);
+    private void setTotals(double[] totals) {
+        TextView tvItemCount = mRootContainer.findViewById(R.id.tv_items_count);
+        TextView tvMinValue = mRootContainer.findViewById(R.id.tv_min_value);
+        TextView tvMaxValue = mRootContainer.findViewById(R.id.tv_max_value);
+        TextView tvAverageValue = mRootContainer.findViewById(R.id.tv_average_value);
+        TextView tvTotalValue = mRootContainer.findViewById(R.id.tv_total_value);
 
         tvItemCount.setText(Utils.formatDouble(totals[0], 0));
         tvMinValue.setText(Utils.formatDouble(totals[1], 2));
         tvMaxValue.setText(Utils.formatDouble(totals[2], 2));
         tvAverageValue.setText(Utils.formatDouble(totals[3], 2));
         tvTotalValue.setText(Utils.formatDouble(totals[4], 2));
+    }
 
-        totalsContainer.setVisibility(View.VISIBLE);
+    private void showTotals(double[] totals) {
+        setTotals(totals);
+        mRootContainer.findViewById(R.id.totals_container).setVisibility(View.VISIBLE);
     }
 
     private void updateCalendarYMD(Calendar toUpdate, Date update) {

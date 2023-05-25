@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
+import android.util.Log;
 
 import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxRequestConfig;
@@ -24,8 +25,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import ua.com.supersonic.android.notebook.R;
 import ua.com.supersonic.android.notebook.db.DBConstants;
 import ua.com.supersonic.android.notebook.utils.Utils;
 
@@ -36,13 +39,18 @@ public class DropboxDBSynchronizer {
 
     private DbxClientV2 mDropboxClient;
     private DropboxTokenHolder mDropboxTokenHolder;
+    private String mMessage;
 
-    private Context appContext;
+    private final Context appContext;
 
     private DropboxDBSynchronizer(Context appContext) {
 //        this.mDropboxTokenHolder = new DropboxTokenHolder();
 //        this.mDropboxTokenHolder.initToken();
         this.appContext = appContext;
+    }
+
+    public String getMessage() {
+        return mMessage;
     }
 
     public static DropboxDBSynchronizer getInstance(Context context) {
@@ -52,7 +60,27 @@ public class DropboxDBSynchronizer {
         return instance;
     }
 
-    public void performDropboxExportTask() {
+    public boolean performDropboxExport(String dbName, String dropboxAppName) {
+        mMessage = null;
+        boolean isDropboxReady = performDropboxCheck(dropboxAppName);
+        if (isDropboxReady) {
+            File fromFile = new File(generateSqliteDBPath(dbName));
+            try (
+                    InputStream in = new FileInputStream(fromFile)
+            ) {
+                mDropboxClient.files().uploadBuilder("/" + dbName)
+                        .withMode(WriteMode.OVERWRITE)
+                        .uploadAndFinish(in);
+                return true;
+            } catch (IOException | DbxException e) {
+                mMessage = e.getMessage();
+            }
+        }
+        return false;
+    }
+
+
+    /*public void performDropboxExportTask() {
         boolean isDropboxReady = performDropboxCheck();
         if (isDropboxReady) {
             Predicate<String[]> dropboxExportPredicate = (args) -> {
@@ -72,9 +100,27 @@ public class DropboxDBSynchronizer {
             boolean isExportSucceed = performPredicateTask(dropboxExportPredicate, generateSqliteDBPath(DBConstants.DB_NAME), DBConstants.DB_NAME);
             Utils.showToastMessage("EXPORT TASK IS " + String.valueOf(isExportSucceed).toUpperCase(), appContext);
         }
+    }*/
+
+    public boolean performDropboxImport(String dbName, String dropboxAppName) {
+        mMessage = null;
+        boolean isDropboxReady = performDropboxCheck(dropboxAppName);
+        if (isDropboxReady) {
+            File toFile = new File(generateSqliteDBPath(dbName));
+            try (
+                    OutputStream outStream = new FileOutputStream(toFile, false)
+            ) {
+                mDropboxClient.files()
+                        .downloadBuilder("/" + dbName).download(outStream);
+                return true;
+            } catch (IOException | DbxException e) {
+                mMessage = e.getMessage();
+            }
+        }
+        return false;
     }
 
-    public void performDropboxImportTask() {
+    /*public void performDropboxImportTask() {
         boolean isDropboxReady = performDropboxCheck();
         if (isDropboxReady) {
             Predicate<String[]> dropboxImportPredicate = (args) -> {
@@ -92,7 +138,7 @@ public class DropboxDBSynchronizer {
             boolean isImportSucceed = performPredicateTask(dropboxImportPredicate, DBConstants.DB_NAME, generateSqliteDBPath(DBConstants.DB_NAME));
             Utils.showToastMessage("IMPORT TASK IS " + String.valueOf(isImportSucceed).toUpperCase(), appContext);
         }
-    }
+    }*/
 
     private String generateSqliteDBPath(String dbName) {
         return String.format(SQLITE_DB_FILEPATH_FORMAT_STRING, appContext.getPackageName(), dbName);
@@ -104,7 +150,31 @@ public class DropboxDBSynchronizer {
         return networkInfo != null && networkInfo.isConnected();
     }
 
-    private boolean performDropboxCheck() {
+    private boolean performDropboxCheck(String dropboxAppName) {
+        if (!isConnected()) {
+            mMessage = appContext.getString(R.string.error_msg_no_internet);
+            return false;
+        }
+        if (mDropboxTokenHolder == null) {
+            mDropboxTokenHolder = new DropboxTokenHolder(appContext);
+        }
+        if (!mDropboxTokenHolder.isTokenValid()) {
+            try {
+                performTokenRefresh();
+            } catch (JSONException | IOException e) {
+                mMessage = e.getMessage();
+                return false;
+            }
+        } else if (mDropboxClient == null) {
+            DbxRequestConfig config = DbxRequestConfig
+                    .newBuilder("dropbox/" + dropboxAppName)
+                    .build();
+            mDropboxClient = new DbxClientV2(config, mDropboxTokenHolder.getShortTermToken());
+        }
+        return true;
+    }
+
+/*    private boolean performDropboxCheck() {
         String toastMessage;
         if (!isConnected()) {
             toastMessage = "NO INTERNET CONNECTION";
@@ -127,7 +197,7 @@ public class DropboxDBSynchronizer {
             mDropboxClient = new DbxClientV2(config, mDropboxTokenHolder.getShortTermToken());
         }
         return true;
-    }
+    }*/
 
     private boolean performPredicateTask(Predicate<String[]> action, String... args) {
         String toastMessage;
@@ -148,7 +218,14 @@ public class DropboxDBSynchronizer {
         return isTaskSucceed;
     }
 
-    private void performTokenRefreshTask() throws ExecutionException, InterruptedException {
+    private void performTokenRefresh() throws JSONException, IOException {
+        mDropboxTokenHolder.refreshToken();
+        mDropboxTokenHolder.persistToken();
+        DbxRequestConfig config = DbxRequestConfig.newBuilder("dropbox/app_notebook").build();
+        mDropboxClient = new DbxClientV2(config, mDropboxTokenHolder.getShortTermToken());
+    }
+
+    /*private void performTokenRefreshTask() throws ExecutionException, InterruptedException {
         Predicate<String[]> refreshTokenPredicate = (args) -> {
             try {
                 mDropboxTokenHolder.refreshToken();
@@ -163,7 +240,7 @@ public class DropboxDBSynchronizer {
             DbxRequestConfig config = DbxRequestConfig.newBuilder("dropbox/app_notebook").build();
             mDropboxClient = new DbxClientV2(config, mDropboxTokenHolder.getShortTermToken());
         }
-    }
+    }*/
 
     private static class DropboxTokenHolder {
         private static final String JSON_EXPIRES_PROPERTY = "expires_in";
@@ -179,7 +256,7 @@ public class DropboxDBSynchronizer {
         private long expireTermEnd;
         private String shortTermToken;
 
-        private Context appContext;
+        private final Context appContext;
 
         private DropboxTokenHolder(Context appContext) {
             this.appContext = appContext;
@@ -229,6 +306,7 @@ public class DropboxDBSynchronizer {
 
     public static class PredicateTask extends AsyncTask<String, Void, Boolean> {
 
+
         private final Predicate<String[]> action;
         private String errorMessage;
 
@@ -250,6 +328,8 @@ public class DropboxDBSynchronizer {
                 return false;
             }
         }
+
+
     }
 
 }

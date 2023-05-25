@@ -24,10 +24,19 @@
     <string name="record_field_amount">AMOUNT</string>
     <string name="record_field_descr">DESCRIPTION</string>
 
-    <string name="invalid_date_field_message">INVALID DATE</string>
-    <string name="invalid_amount_field_message">INVALID AMOUNT</string>
-    <string name="invalid_category_name_message">INVALID CATEGORY NAME</string>
-    <string name="invalid_time_period_message">INVALID TIME PERIOD</string>
+    <string name="error_msg_invalid_date_input">INVALID DATE</string>
+    <string name="error_msg_invalid_amount_input">INVALID AMOUNT</string>
+    <string name="error_msg_invalid_category_name_input">INVALID CATEGORY NAME</string>
+    <string name="error_msg_invalid_time_period_input">INVALID TIME PERIOD</string>
+    <string name="error_msg_no_internet">NO INTERNET CONNECTION</string>
+    <string name="error_msg_exception_occurred">EXCEPTION OCCURRED:</string>
+
+    <string name="msg_dropbox_import_success">DROPBOX IMPORT SUCCESSFUL</string>
+    <string name="msg_dropbox_export_success">DROPBOX EXPORT SUCCESSFUL</string>
+    <string name="msg_repeat_dropbox_download">Do you wish to repeat database download from Dropbox account?</string>
+    <string name="msg_repeat_dropbox_upload">Do you wish to repeat database upload to Dropbox account?</string>
+
+    <string name="dropbox_app_name">app_notebook</string>
 
     <string name="tv_rec_quant_message">%d rec</string>
     <string name="tv_last_rec_ago_prefix">last: </string>

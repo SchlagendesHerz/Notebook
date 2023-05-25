@@ -37,13 +37,7 @@ public class MainActivity extends AppCompatActivity {
         return mPagerAdapter;
     }
 
-    public void showDialogBox(int msgId, DialogInterface.OnClickListener yesBtListener) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage(msgId)
-                .setPositiveButton(R.string.dialog_box_yes_bt, yesBtListener)
-                .setNegativeButton(R.string.dialog_box_no_bt, (dialogInterface, i) -> dialogInterface.dismiss())
-                .show();
-    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
