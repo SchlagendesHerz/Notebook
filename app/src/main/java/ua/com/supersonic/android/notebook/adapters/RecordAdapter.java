@@ -58,12 +58,18 @@ public class RecordAdapter extends ArrayAdapter<NotebookRecord> {
             textView = convertView.findViewById(R.id.tv_ago);
             textView.setText(Utils.formatAgoDate(item.getDate()));
 
+            textView = convertView.findViewById(R.id.tv_prev_rec_ago);
+            textView.setText(item.getPrevDate() == null
+                    ? "--"
+                    : Utils.formatAgoDate(item.getDate(), item.getPrevDate()));
+
             if (mSelectedItems.contains(position)) {
                 convertView.setBackgroundColor(getContext().getResources().getColor(R.color.list_item_selected));
                 ((TextView) (convertView.findViewById(R.id.tv_date))).setTextColor(getContext().getColor(R.color.white));
                 ((TextView) (convertView.findViewById(R.id.tv_time))).setTextColor(getContext().getColor(R.color.white));
                 ((TextView) (convertView.findViewById(R.id.tv_ago))).setTextColor(getContext().getColor(R.color.white));
                 ((TextView) (convertView.findViewById(R.id.tv_amount))).setTextColor(getContext().getColor(R.color.white));
+                ((TextView) (convertView.findViewById(R.id.tv_prev_rec_ago))).setTextColor(getContext().getColor(R.color.white));
 
             } else {
                 convertView.setBackgroundColor(getContext().getColor(R.color.white));
@@ -71,6 +77,7 @@ public class RecordAdapter extends ArrayAdapter<NotebookRecord> {
                 ((TextView) (convertView.findViewById(R.id.tv_time))).setTextColor(getContext().getColor(R.color.tv_time_date_text_color));
                 ((TextView) (convertView.findViewById(R.id.tv_ago))).setTextColor(getContext().getColor(R.color.tv_time_date_text_color));
                 ((TextView) (convertView.findViewById(R.id.tv_amount))).setTextColor(getContext().getColor(R.color.tv_time_date_text_color));
+                ((TextView) (convertView.findViewById(R.id.tv_prev_rec_ago))).setTextColor(getContext().getColor(R.color.tv_time_date_text_color));
             }
         }
         return convertView;

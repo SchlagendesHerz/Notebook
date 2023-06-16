@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ua.com.supersonic.android.notebook.custom_views.InterceptConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_height="match_parent"
         android:layout_width="match_parent"
         android:orientation="vertical"
@@ -9,8 +10,7 @@
             android:id="@+id/view_pager"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-
-            >
+            android:visibility="visible">
 
         <com.google.android.material.tabs.TabLayout
                 android:id="@+id/tab_layout"
@@ -25,4 +25,60 @@
                 tabMode="fixed" />
 
     </ua.com.supersonic.android.notebook.custom_views.NonSwipeableViewPager>
-</LinearLayout>
+
+    <RelativeLayout
+            android:id="@+id/transparent_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="16dp"
+            android:visibility="invisible"
+            android:padding="24dp"
+            android:clickable="true"
+            android:focusable="true">
+
+        <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentStart="true"
+                android:layout_alignParentBottom="true"
+                android:layout_alignParentTop="true">
+
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="22sp"
+                    android:gravity="center_vertical|start"
+                    android:text="@string/msg_swipe_to_upload"
+                    app:drawableLeftCompat="@drawable/ic_up_arrow"
+                    android:drawablePadding="8dp"
+                    android:layout_marginBottom="20dp" />
+
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="22sp"
+                    android:gravity="center_vertical|start"
+                    android:text="@string/msg_dbx_swipe_to_download"
+                    app:drawableLeftCompat="@drawable/ic_down_arrow"
+                    android:drawablePadding="8dp"
+                    android:layout_marginTop="20dp" />
+        </LinearLayout>
+
+        <TextView
+                android:id="@+id/tv_dbx_login"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="22sp"
+                android:gravity="center_vertical|start"
+                android:text="@string/msg_dbx_press_to_auth"
+                app:drawableLeftCompat="@drawable/ic_login"
+                android:drawablePadding="8dp"
+                android:layout_marginTop="20dp"
+                android:layout_alignParentBottom="true"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentStart="true" />
+    </RelativeLayout>
+</ua.com.supersonic.android.notebook.custom_views.InterceptConstraintLayout>

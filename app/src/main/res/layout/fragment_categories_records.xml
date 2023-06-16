@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ua.com.supersonic.android.notebook.custom_views.SwipeableConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ua.com.supersonic.android.notebook.custom_views.InterceptConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools"
         android:id="@+id/categories_records_fragment_root_container"
@@ -448,6 +448,7 @@
 
     </TableLayout>
 
+
     <ListView
             android:id="@+id/lv_items"
             android:layout_width="match_parent"
@@ -457,8 +458,10 @@
             app:layout_constraintTop_toBottomOf="@id/totals_container"
 
             tools:layout_editor_absoluteX="16dp"
-            app:layout_constraintBottom_toTopOf="@+id/bottom_bts" />
+            app:layout_constraintBottom_toTopOf="@+id/bottom_bts"
+            app:layout_constraintVertical_bias="0.0">
 
+    </ListView>
 
     <LinearLayout
             android:id="@+id/bottom_bts"
@@ -511,4 +514,4 @@
             android:visibility="gone" />
 
 
-</ua.com.supersonic.android.notebook.custom_views.SwipeableConstraintLayout>
+</ua.com.supersonic.android.notebook.custom_views.InterceptConstraintLayout>

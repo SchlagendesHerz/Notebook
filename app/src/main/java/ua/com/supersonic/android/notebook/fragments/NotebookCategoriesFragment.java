@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -19,10 +20,11 @@ import androidx.core.view.MotionEventCompat;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager.widget.ViewPager;
 
+import com.dropbox.core.android.Auth;
+import com.dropbox.core.v2.users.FullAccount;
 import com.google.android.material.tabs.TabLayout;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -34,21 +36,19 @@ import ua.com.supersonic.android.notebook.R;
 import ua.com.supersonic.android.notebook.adapters.CategoryAdapter;
 import ua.com.supersonic.android.notebook.db.DBConstants;
 import ua.com.supersonic.android.notebook.db.DBManager;
-import ua.com.supersonic.android.notebook.custom_views.SwipeableConstraintLayout;
+import ua.com.supersonic.android.notebook.custom_views.InterceptConstraintLayout;
 import ua.com.supersonic.android.notebook.custom_views.NonSwipeableViewPager;
 import ua.com.supersonic.android.notebook.utils.Utils;
 
 public class NotebookCategoriesFragment extends Fragment implements View.OnClickListener,
-        AdapterView.OnItemClickListener, ViewPager.OnPageChangeListener, View.OnTouchListener {
+        AdapterView.OnItemClickListener, ViewPager.OnPageChangeListener {
 
     private CategoryAdapter mCategoryAdapter;
-    private AsyncExecutor<String, Void, Void> mAsyncExecutor;
-
-    private SwipeableConstraintLayout mRootContainer;
-    private ListView mLvCategories;
+    private View mCurItemButtons;
     private EditText mEtAEFCategory;
     private View mEtContainer;
-    private View mCurItemButtons;
+    private ListView mLvCategories;
+    private InterceptConstraintLayout mRootContainer;
 
     private boolean mIsAddBtPressed;
     private boolean mIsEditBtPressed;
@@ -60,15 +60,9 @@ public class NotebookCategoriesFragment extends Fragment implements View.OnClick
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.bt_list_all:
-                if (mIsListBtPressed) {
-                    mLvCategories.setVisibility(View.GONE);
-                    mIsListBtPressed = false;
-                } else {
-                    btListPressedFirstTime();
-//                DropboxDBSynchronizer.getInstance().performDropboxImportTask();
-                    showCategoryList(readAllCategories());
-                    Utils.hideKeyboard(getAppMainActivity());
-                }
+                btListPressedFirstTime();
+                showCategoryList(readAllCategories());
+                Utils.hideKeyboard(getAppMainActivity());
                 break;
             case R.id.bt_add:
                 if (mIsEditBtPressed) {
@@ -152,24 +146,209 @@ public class NotebookCategoriesFragment extends Fragment implements View.OnClick
         }
     }
 
+    private void btListPressedFirstTime() {
+        resetSelectedItems();
+        mIsAddBtPressed = false;
+        mIsFindBtPressed = false;
+        mIsEditBtPressed = false;
+        mIsListBtPressed = true;
+        mLvCategories.setVisibility(View.VISIBLE);
+        mEtContainer.setVisibility(View.GONE);
+        resetBtAdd();
+    }
+
+    private void showCategoryList(List<NotebookCategory> input) {
+        mCategoryAdapter.clear();
+        mCategoryAdapter.addAll(input);
+        mCategoryAdapter.notifyDataSetChanged();
+        if (mCategoryAdapter.isEmpty()) {
+            TextView tvMssage = mRootContainer.findViewById(R.id.tv_message);
+            tvMssage.setVisibility(View.VISIBLE);
+            tvMssage.setText(getResources().getString(R.string.tv_message_list_empty));
+        }
+    }
+
+    private List<NotebookCategory> readAllCategories() {
+        return DBManager.getInstance(getContext()).readAllCategories();
+    }
+
+    private MainActivity getAppMainActivity() {
+        return ((MainActivity) requireActivity());
+    }
+
+    private String getCategoryNameFromEtAEF() {
+        String readValue = mEtAEFCategory.getText()
+                .toString().trim().toUpperCase();
+        if (readValue.isEmpty()) {
+            Utils.showToastMessage(getString(R.string.error_msg_invalid_category_name_input), getContext());
+            restoreEtAEFCategoryName();
+            return null;
+        }
+        return readValue;
+    }
+
+    private NotebookCategory getCurrentCategory() {
+        return mCategoryAdapter.getItem(mCategoryAdapter.getSelectedItems().get(0));
+    }
+
+    private void resetSelectedItems() {
+        List<Integer> selectedItems = mCategoryAdapter.getSelectedItems();
+        if (!selectedItems.isEmpty()) {
+//            disableViewPagerSwipe();
+            View curListItem;
+            for (Integer pos : selectedItems) {
+                curListItem = Utils.getViewByPosition(pos, mLvCategories);
+                curListItem.setBackgroundColor(getResources().getColor(R.color.white));
+                ((TextView) (curListItem.findViewById(R.id.tv_rec_quant))).setTextColor(getResources().getColor(R.color.tv_rec_quant_color));
+                ((TextView) (curListItem.findViewById(R.id.tv_last_rec_ago))).setTextColor(getResources().getColor(R.color.tv_last_rec_ago_color));
+            }
+            selectedItems.clear();
+        }
+        mCurItemButtons.setVisibility(View.GONE);
+        mRootContainer.findViewById(R.id.tv_message).setVisibility(View.GONE);
+    }
+
+    private void resetBtAdd() {
+        ((Button) mRootContainer.findViewById(R.id.bt_add)).setText(R.string.bt_add);
+    }
+
+    private void btAddPressedFirstTime() {
+        mEtAEFCategory.setText("");
+        mEtAEFCategory.setHint(getResources().getString(R.string.et_add_category_hint));
+        mLvCategories.setVisibility(View.GONE);
+        mEtContainer.setVisibility(View.VISIBLE);
+        mIsAddBtPressed = true;
+        mIsEditBtPressed = false;
+        mIsFindBtPressed = false;
+        mIsListBtPressed = false;
+        Utils.showKeyboardOnFocus(mEtAEFCategory, requireContext());
+    }
+
+    private void btEditPressedFirstTime() {
+        disableViewPagerSwipe();
+        mEtAEFCategory.setText(getCurrentCategory().getName());
+        mLvCategories.setVisibility(View.GONE);
+        mEtContainer.setVisibility(View.VISIBLE);
+        ((Button) mRootContainer.findViewById(R.id.bt_add)).setText(R.string.bt_edit);
+        mEtAEFCategory.setSelection(mEtAEFCategory.getText().length());
+
+        mIsAddBtPressed = false;
+        mIsEditBtPressed = true;
+        mIsFindBtPressed = false;
+        mIsListBtPressed = false;
+        Utils.showKeyboardOnFocus(mEtAEFCategory, requireContext());
+    }
+
+    private List<NotebookCategory> findCategories(String toFind) {
+        return DBManager.getInstance(getContext()).readCategoriesWhereKeyLike(DBConstants.COLUMN_CATEGORY_NAME, "%" + toFind + "%");
+    }
+
+    private void btFindPressedFirstTime() {
+        resetBtAdd();
+        mEtAEFCategory.setText("");
+        mEtAEFCategory.setHint(getResources().getString(R.string.et_find_category_hint));
+        mLvCategories.setVisibility(View.GONE);
+        mEtContainer.setVisibility(View.VISIBLE);
+        mIsAddBtPressed = false;
+        mIsEditBtPressed = false;
+        mIsFindBtPressed = true;
+        mIsListBtPressed = false;
+        Utils.showKeyboardOnFocus(mEtAEFCategory, requireContext());
+    }
+
     private NotebookRecordsFragment getRecordsFragment() {
         Fragment page = getAppMainActivity().getSupportFragmentManager().findFragmentByTag("android:switcher:" + R.id.view_pager + ":" + 1);
         return (NotebookRecordsFragment) page;
     }
 
+    private void restoreEtAEFCategoryName() {
+        if (mIsAddBtPressed) {
+            mEtAEFCategory.setText("");
+        } else if (mIsEditBtPressed) {
+            mEtAEFCategory.setText(getCurrentCategory().getName());
+            mEtAEFCategory.setSelection(mEtAEFCategory.getText().length());
+        }
+    }
+
+    private void disableViewPagerSwipe() {
+        ((NonSwipeableViewPager) getAppMainActivity().getViewPager()).setSwipeEnabled(false);
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle
             savedInstanceState) {
-        mRootContainer = (SwipeableConstraintLayout) inflater.inflate(R.layout.fragment_categories_records, container, false);
+        mRootContainer = (InterceptConstraintLayout) inflater.inflate(R.layout.fragment_categories_records, container, false);
         init();
 
         return mRootContainer;
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+
+/*        if (isDownloadPending) {
+            isDownloadPending = false;
+
+            DropboxDBSynchronizer
+                    .getInstance(getContext(), getString(R.string.dbx_api_app_name))
+                    .updateDbxCredential(Auth.getDbxCredential());
+
+            Log.d("DROPBOX", "ON RESUME DOWNLOAD");
+            Utils.logDbxCredentials(DropboxDBSynchronizer
+                    .getInstance(getContext(), getString(R.string.dbx_api_app_name)).getDbxCredential());
+
+            performDbxImport();
+            return;
+        }
+
+        if (isUploadPending) {
+            isUploadPending = false;
+
+            DropboxDBSynchronizer
+                    .getInstance(getContext(), getString(R.string.dbx_api_app_name))
+                    .updateDbxCredential(Auth.getDbxCredential());
+
+            Log.d("DROPBOX", "ON RESUME UPLOAD");
+            Utils.logDbxCredentials(DropboxDBSynchronizer
+                    .getInstance(getContext(), getString(R.string.dbx_api_app_name)).getDbxCredential());
+
+
+            performDbxExport();
+        }*/
+    }
+
+    @Override
     public void onDestroyView() {
         super.onDestroyView();
 //        DBManager.getInstance().closeDB();
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private void init() {
+
+        mRootContainer.findViewById(R.id.bt_list_all).setOnClickListener(this);
+        mRootContainer.findViewById(R.id.bt_add).setOnClickListener(this);
+        mRootContainer.findViewById(R.id.bt_find).setOnClickListener(this);
+        mRootContainer.findViewById(R.id.bt_rem).setOnClickListener(this);
+        mRootContainer.findViewById(R.id.bt_clear).setOnClickListener(this);
+        mRootContainer.findViewById(R.id.bt_edit).setOnClickListener(this);
+        mRootContainer.findViewById(R.id.bt_show_records).setOnClickListener(this);
+
+        mEtAEFCategory = mRootContainer.findViewById(R.id.et_add_edit_find);
+        mEtContainer = mRootContainer.findViewById(R.id.widgets_container);
+
+        mLvCategories = mRootContainer.findViewById(R.id.lv_items);
+        mCategoryAdapter = new CategoryAdapter(getContext());
+        mLvCategories.setAdapter(mCategoryAdapter);
+        mLvCategories.setOnItemClickListener(this);
+        mLvCategories.setVisibility(View.GONE);
+
+        mCurItemButtons = mRootContainer.findViewById(R.id.bottom_bts);
+        mCurItemButtons.setVisibility(View.GONE);
+
+        getAppMainActivity().getViewPager().addOnPageChangeListener(this);
+        disableViewPagerSwipe();
     }
 
     @Override
@@ -209,6 +388,10 @@ public class NotebookCategoriesFragment extends Fragment implements View.OnClick
         }
     }
 
+    private void enableViewPagerSwipe() {
+        ((NonSwipeableViewPager) getAppMainActivity().getViewPager()).setSwipeEnabled(true);
+    }
+
     @Override
     public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
 
@@ -238,235 +421,6 @@ public class NotebookCategoriesFragment extends Fragment implements View.OnClick
 
     }
 
-    public boolean onTouch(View view, MotionEvent motionEvent) {
-        float curX = motionEvent.getX();
-        float curY = motionEvent.getY();
-
-        switch (MotionEventCompat.getActionMasked(motionEvent)) {
-            case MotionEvent.ACTION_UP:
-                if (isUpSwipe(mRootContainer.getDownPointX(), mRootContainer.getDownPointY(), curX, curY)) {
-//                    Log.d("ON_TOUCH", "VERTICAL SWIPE DETECTED");
-                    Utils.showDialogBox(getContext(), R.string.dialog_box_msg_dropbox_upload,
-                            (dialogInterface, i) -> {
-                                dialogInterface.dismiss();
-                                performDropboxExport();
-                            });
-
-                } else if (isDownSwipe(mRootContainer.getDownPointX(), mRootContainer.getDownPointY(), curX, curY)) {
-                    Utils.showDialogBox(getContext(), R.string.dialog_box_msg_dropbox_download,
-                            (dialogInterface, i) -> {
-                                dialogInterface.dismiss();
-                                performDropboxImport();
-                            });
-                }
-                break;
-        }
-
-        return false;
-    }
-
-    private void btListPressedFirstTime() {
-        resetSelectedItems();
-        mIsAddBtPressed = false;
-        mIsFindBtPressed = false;
-        mIsEditBtPressed = false;
-        mIsListBtPressed = true;
-        mLvCategories.setVisibility(View.VISIBLE);
-        mEtContainer.setVisibility(View.GONE);
-        resetBtAdd();
-    }
-
-    private void btAddPressedFirstTime() {
-        mEtAEFCategory.setText("");
-        mEtAEFCategory.setHint(getResources().getString(R.string.et_add_category_hint));
-        mLvCategories.setVisibility(View.GONE);
-        mEtContainer.setVisibility(View.VISIBLE);
-        mIsAddBtPressed = true;
-        mIsEditBtPressed = false;
-        mIsFindBtPressed = false;
-        mIsListBtPressed = false;
-        Utils.showKeyboardOnFocus(mEtAEFCategory, requireContext());
-    }
-
-    private void btEditPressedFirstTime() {
-        disableViewPagerSwipe();
-        mEtAEFCategory.setText(getCurrentCategory().getName());
-        mLvCategories.setVisibility(View.GONE);
-        mEtContainer.setVisibility(View.VISIBLE);
-        ((Button) mRootContainer.findViewById(R.id.bt_add)).setText(R.string.bt_edit);
-        mEtAEFCategory.setSelection(mEtAEFCategory.getText().length());
-
-        mIsAddBtPressed = false;
-        mIsEditBtPressed = true;
-        mIsFindBtPressed = false;
-        mIsListBtPressed = false;
-        Utils.showKeyboardOnFocus(mEtAEFCategory, requireContext());
-    }
-
-    private void btFindPressedFirstTime() {
-        resetBtAdd();
-        mEtAEFCategory.setText("");
-        mEtAEFCategory.setHint(getResources().getString(R.string.et_find_category_hint));
-        mLvCategories.setVisibility(View.GONE);
-        mEtContainer.setVisibility(View.VISIBLE);
-        mIsAddBtPressed = false;
-        mIsEditBtPressed = false;
-        mIsFindBtPressed = true;
-        mIsListBtPressed = false;
-        Utils.showKeyboardOnFocus(mEtAEFCategory, requireContext());
-    }
-
-    private void disableViewPagerSwipe() {
-        ((NonSwipeableViewPager) getAppMainActivity().getViewPager()).setSwipeEnabled(false);
-    }
-
-    private void enableViewPagerSwipe() {
-        ((NonSwipeableViewPager) getAppMainActivity().getViewPager()).setSwipeEnabled(true);
-    }
-
-    private List<NotebookCategory> findCategories(String toFind) {
-        return DBManager.getInstance(getContext()).readCategoriesWhereKeyLike(DBConstants.COLUMN_CATEGORY_NAME, "%" + toFind + "%");
-    }
-
-    private String getCategoryNameFromEtAEF() {
-        String readValue = mEtAEFCategory.getText()
-                .toString().trim().toUpperCase();
-        if (readValue.isEmpty()) {
-            Utils.showToastMessage(getString(R.string.error_msg_invalid_category_name_input), getContext());
-            restoreEtAEFCategoryName();
-            return null;
-        }
-        return readValue;
-    }
-
-    private NotebookCategory getCurrentCategory() {
-        return mCategoryAdapter.getItem(mCategoryAdapter.getSelectedItems().get(0));
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    private void init() {
-
-        mRootContainer.findViewById(R.id.bt_list_all).setOnClickListener(this);
-        mRootContainer.findViewById(R.id.bt_add).setOnClickListener(this);
-        mRootContainer.findViewById(R.id.bt_find).setOnClickListener(this);
-        mRootContainer.findViewById(R.id.bt_rem).setOnClickListener(this);
-        mRootContainer.findViewById(R.id.bt_clear).setOnClickListener(this);
-        mRootContainer.findViewById(R.id.bt_edit).setOnClickListener(this);
-        mRootContainer.findViewById(R.id.bt_show_records).setOnClickListener(this);
-
-        mEtAEFCategory = mRootContainer.findViewById(R.id.et_add_edit_find);
-        mEtContainer = mRootContainer.findViewById(R.id.widgets_container);
-
-        mLvCategories = mRootContainer.findViewById(R.id.lv_items);
-        mCategoryAdapter = new CategoryAdapter(getContext());
-        mLvCategories.setAdapter(mCategoryAdapter);
-        mLvCategories.setOnItemClickListener(this);
-        mLvCategories.setVisibility(View.GONE);
-
-        mCurItemButtons = mRootContainer.findViewById(R.id.bottom_bts);
-        mCurItemButtons.setVisibility(View.GONE);
-
-        mRootContainer.setOnTouchListener(this);
-        mRootContainer.setInterceptOff();
-
-        getAppMainActivity().getViewPager().addOnPageChangeListener(this);
-        disableViewPagerSwipe();
-
-//        Consumer<Void[]> errorAction = args -> {
-//
-//            StringBuilder builder = new StringBuilder(getString(R.string.error_msg_exception_occurred));
-//            String errorMsg = DropboxDBSynchronizer.getInstance(getContext()).getMessage();
-//            if (errorMsg == null) errorMsg = mAsyncExecutor.getErrorMsg();
-//            builder.append(errorMsg);
-//            Utils.showToastMessage(builder.toString(), getContext());
-//        };
-        mAsyncExecutor = new AsyncExecutor<>();
-    }
-
-    private void performDropboxExport() {
-        Predicate<String[]> mainExportAction = args -> DropboxDBSynchronizer.
-                getInstance(getContext())
-                .performDropboxExport(args[0], args[1]);
-
-        Consumer<Void[]> postExportAction = args -> Utils
-                .showToastMessage(getString(R.string.msg_dropbox_export_success), getContext());
-
-        Consumer<Void[]> errorExportAction = args -> {
-            StringBuilder stringBuilder = new StringBuilder(getString(R.string.error_msg_exception_occurred));
-            String errorMsg = DropboxDBSynchronizer.getInstance(getContext()).getMessage();
-            if (errorMsg == null) errorMsg = mAsyncExecutor.getErrorMsg();
-            stringBuilder.append("\n")
-                    .append(errorMsg)
-                    .append("\n")
-                    .append(getString(R.string.msg_repeat_dropbox_upload));
-
-            Utils.showDialogBox(getContext(), stringBuilder.toString(),
-                    (dialogInterface, i) -> {
-                        dialogInterface.dismiss();
-//                        performDropboxExport();
-                        mAsyncExecutor.execute();
-
-                    });
-//            Utils.showToastMessage(stringBuilder.toString(), getContext());
-        };
-        mAsyncExecutor.setMainAction(mainExportAction, DBConstants.DB_NAME, getString(R.string.dropbox_app_name));
-        mAsyncExecutor.setPostAction(postExportAction);
-        mAsyncExecutor.setErrorAction(errorExportAction);
-        mAsyncExecutor.execute();
-    }
-
-    private void performDropboxImport() {
-        Predicate<String[]> mainImportAction = args -> DropboxDBSynchronizer.
-                getInstance(getContext())
-                .performDropboxImport(args[0], args[1]);
-
-        Consumer<Void[]> postImportAction = args -> Utils
-                .showToastMessage(getString(R.string.msg_dropbox_import_success), getContext());
-
-        Consumer<Void[]> errorImportAction = args -> {
-            StringBuilder msgBuilder = new StringBuilder(getString(R.string.error_msg_exception_occurred));
-            String errorMsg = DropboxDBSynchronizer.getInstance(getContext()).getMessage();
-            if (errorMsg == null) errorMsg = mAsyncExecutor.getErrorMsg();
-            msgBuilder.append("\n")
-                    .append(errorMsg)
-                    .append("\n")
-                    .append(getString(R.string.msg_repeat_dropbox_download));
-
-            Utils.showDialogBox(getContext(), msgBuilder.toString(),
-                    (dialogInterface, i) -> {
-                        dialogInterface.dismiss();
-//                        performDropboxImport();
-                        mAsyncExecutor.execute();
-
-                    });
-//            Utils.showToastMessage(stringBuilder.toString(), getContext());
-        };
-        mAsyncExecutor.setMainAction(mainImportAction, DBConstants.DB_NAME, getString(R.string.dropbox_app_name));
-        mAsyncExecutor.setPostAction(postImportAction);
-        mAsyncExecutor.setErrorAction(errorImportAction);
-        mAsyncExecutor.execute();
-    }
-
-    private MainActivity getAppMainActivity() {
-        return ((MainActivity) requireActivity());
-    }
-
-    private boolean isDownSwipe(float startX, float startY, float endX, float endY) {
-        return isVerticalSwipe(startX, startY, endX, endY) && startY < endY;
-    }
-
-    private boolean isUpSwipe(float startX, float startY, float endX, float endY) {
-        return isVerticalSwipe(startX, startY, endX, endY) && startY > endY;
-    }
-
-    private boolean isVerticalSwipe(float startX, float startY, float endX, float endY) {
-        return Math.abs(startX - endX) < Math.abs(startY - endY);
-    }
-
-    private List<NotebookCategory> readAllCategories() {
-        return DBManager.getInstance(getContext()).readAllCategories();
-    }
-
     private void refreshCurCategoryItem() {
         NotebookCategory curCategoryFromAdapter = getCurrentCategory();
         NotebookCategory curCategoryFromDB = DBManager.getInstance(getContext())
@@ -477,58 +431,15 @@ public class NotebookCategoriesFragment extends Fragment implements View.OnClick
         mCategoryAdapter.notifyDataSetChanged();
     }
 
-    private void resetBtAdd() {
-        ((Button) mRootContainer.findViewById(R.id.bt_add)).setText(R.string.bt_add);
-    }
-
-    private void resetSelectedItems() {
-        List<Integer> selectedItems = mCategoryAdapter.getSelectedItems();
-        if (!selectedItems.isEmpty()) {
-//            disableViewPagerSwipe();
-            View curListItem;
-            for (Integer pos : selectedItems) {
-                curListItem = Utils.getViewByPosition(pos, mLvCategories);
-                curListItem.setBackgroundColor(getResources().getColor(R.color.white));
-                ((TextView) (curListItem.findViewById(R.id.tv_rec_quant))).setTextColor(getResources().getColor(R.color.tv_rec_quant_color));
-                ((TextView) (curListItem.findViewById(R.id.tv_last_rec_ago))).setTextColor(getResources().getColor(R.color.tv_last_rec_ago_color));
-            }
-            selectedItems.clear();
-        }
-        mCurItemButtons.setVisibility(View.GONE);
-        mRootContainer.findViewById(R.id.tv_message).setVisibility(View.GONE);
-    }
-
-    private void restoreEtAEFCategoryName() {
-        if (mIsAddBtPressed) {
-            mEtAEFCategory.setText("");
-        } else if (mIsEditBtPressed) {
-            mEtAEFCategory.setText(getCurrentCategory().getName());
-            mEtAEFCategory.setSelection(mEtAEFCategory.getText().length());
-        }
-    }
-
-    private void showCategoryList(List<NotebookCategory> input) {
-        mCategoryAdapter.clear();
-        mCategoryAdapter.addAll(input);
-        mCategoryAdapter.notifyDataSetChanged();
-        if (mCategoryAdapter.isEmpty()) {
-            TextView tvMssage = mRootContainer.findViewById(R.id.tv_message);
-            tvMssage.setVisibility(View.VISIBLE);
-            tvMssage.setText(getResources().getString(R.string.tv_message_list_empty));
-        }
-    }
-
     public static class AsyncExecutor<MA, PA, EA> {
-        private Predicate<MA[]> mainAction;
-        private Consumer<PA[]> postAction;
+        private final Handler handler;
         private Consumer<EA[]> errorAction;
-
-        private MA[] mainArgs;
-        private PA[] postArgs;
         private EA[] errorArgs;
-
-        private Handler handler;
         private String errorMsg;
+        private Predicate<MA[]> mainAction;
+        private MA[] mainArgs;
+        private Consumer<PA[]> postAction;
+        private PA[] postArgs;
 
         @SuppressLint("HandlerLeak")
         public AsyncExecutor() {
@@ -548,26 +459,8 @@ public class NotebookCategoriesFragment extends Fragment implements View.OnClick
             };
         }
 
-        public String getErrorMsg() {
-            return errorMsg;
-        }
-
-        public void setMainAction(Predicate<MA[]> mainAction, MA... mainArgs) {
-            this.mainAction = mainAction;
-            this.mainArgs = mainArgs;
-        }
-
-        public void setPostAction(Consumer<PA[]> postAction, PA... postArgs) {
-            this.postAction = postAction;
-            this.postArgs = postArgs;
-        }
-
-        public void setErrorAction(Consumer<EA[]> errorAction, EA... errorArgs) {
-            this.errorAction = errorAction;
-            this.errorArgs = errorArgs;
-        }
-
         public void execute() {
+            errorMsg = null;
             new Thread() {
                 @Override
                 public void run() {
@@ -591,7 +484,25 @@ public class NotebookCategoriesFragment extends Fragment implements View.OnClick
                     }
                 }
             }.start();
+        }
 
+        public String getErrorMsg() {
+            return errorMsg;
+        }
+
+        public void setErrorAction(Consumer<EA[]> errorAction, EA... errorArgs) {
+            this.errorAction = errorAction;
+            this.errorArgs = errorArgs;
+        }
+
+        public void setMainAction(Predicate<MA[]> mainAction, MA... mainArgs) {
+            this.mainAction = mainAction;
+            this.mainArgs = mainArgs;
+        }
+
+        public void setPostAction(Consumer<PA[]> postAction, PA... postArgs) {
+            this.postAction = postAction;
+            this.postArgs = postArgs;
         }
 
     }

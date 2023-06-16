@@ -25,19 +25,24 @@ public class DBHelper extends SQLiteOpenHelper {
         Log.d("SQL", "onCreate INVOKED!");
         sqLiteDatabase.execSQL(DBConstants.CREATE_CATEGORY_TABLE);
         sqLiteDatabase.execSQL(DBConstants.CREATE_RECORDS_TABLE);
+
         sqLiteDatabase.execSQL(DBConstants.CREATE_TRIGGER_INC_AFTER_RECORD_INS);
         sqLiteDatabase.execSQL(DBConstants.CREATE_TRIGGER_DEC_AFTER_RECORD_DEL);
-        sqLiteDatabase.execSQL(DBConstants.CREATE_TRIGGER_UPD_DATE_AFTER_RECORD_INS);
-        sqLiteDatabase.execSQL(DBConstants.CREATE_TRIGGER_UPD_DATE_AFTER_RECORD_DEL);
-        sqLiteDatabase.execSQL(DBConstants.CREATE_TRIGGER_UPD_DATE_AFTER_RECORD_UPD);
+        sqLiteDatabase.execSQL(DBConstants.CREATE_TRIGGER_UPD_LAST_DATE_AFTER_RECORD_INS);
+        sqLiteDatabase.execSQL(DBConstants.CREATE_TRIGGER_UPD_LAST_DATE_AFTER_RECORD_UPD);
+        sqLiteDatabase.execSQL(DBConstants.CREATE_TRIGGER_UPD_LAST_DATE_AFTER_RECORD_DEL);
+
+        sqLiteDatabase.execSQL(DBConstants.CREATE_TRIGGER_SET_PREV_RECORD_AFTER_RECORD_INS);
+        sqLiteDatabase.execSQL(DBConstants.CREATE_TRIGGER_UPD_PREV_RECORD_AFTER_RECORD_UPD);
+        sqLiteDatabase.execSQL(DBConstants.CREATE_TRIGGER_UPD_PREV_RECORD_AFTER_RECORD_DEL);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int i, int i1) {
         Log.d("SQL", "onUpgrade INVOKED!");
 
-        sqLiteDatabase.execSQL(DBConstants.DELETE_CATEGORY_TABLE);
         sqLiteDatabase.execSQL(DBConstants.DELETE_RECORDS_TABLE);
+        sqLiteDatabase.execSQL(DBConstants.DELETE_CATEGORY_TABLE);
         onCreate(sqLiteDatabase);
     }
 
@@ -45,8 +50,8 @@ public class DBHelper extends SQLiteOpenHelper {
     public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         Log.d("SQL", "onDowngrade INVOKED!");
 
-        db.execSQL(DBConstants.DELETE_CATEGORY_TABLE);
         db.execSQL(DBConstants.DELETE_RECORDS_TABLE);
+        db.execSQL(DBConstants.DELETE_CATEGORY_TABLE);
         onCreate(db);
     }
 }

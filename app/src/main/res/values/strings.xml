@@ -29,25 +29,42 @@
     <string name="error_msg_invalid_category_name_input">INVALID CATEGORY NAME</string>
     <string name="error_msg_invalid_time_period_input">INVALID TIME PERIOD</string>
     <string name="error_msg_no_internet">NO INTERNET CONNECTION</string>
-    <string name="error_msg_exception_occurred">EXCEPTION OCCURRED:</string>
+    <string name="error_msg_exception_occurred">EXCEPTION OCCURRED:\n</string>
+    <string name="error_msg_dbx_auth_required">Before performing any network activity dropbox authentication required.</string>
+    <string name="error_msg_file_absent_format">File to import \"%s\" is absent in dropbox folder.\nTry to perform upload first.</string>
 
-    <string name="msg_dropbox_import_success">DROPBOX IMPORT SUCCESSFUL</string>
-    <string name="msg_dropbox_export_success">DROPBOX EXPORT SUCCESSFUL</string>
-    <string name="msg_repeat_dropbox_download">Do you wish to repeat database download from Dropbox account?</string>
-    <string name="msg_repeat_dropbox_upload">Do you wish to repeat database upload to Dropbox account?</string>
+    <string name="msg_dbx_import_success">DROPBOX IMPORT SUCCESSFUL</string>
+    <string name="msg_dbx_export_success">DROPBOX EXPORT SUCCESSFUL</string>
+    <string name="msg_dbx_logout_success">DROPBOX LOG OUT SUCCESSFUL</string>
+    <string name="msg_dbx_login_success">DROPBOX LOG IN SUCCESSFUL</string>
+    <string name="msg_dbx_login_cur_format">You are currently logged in dropbox account as:\n\n%s\n%s\n</string>
+    <string name="msg_dbx_login_already_format">You are already logged in dropbox account as:\n\n%s\n%s.</string>
+    <string name="msg_dbx_relogin_prompt">If you wish to change dropbox account, choose \"Yes\" and in the next window press \"Sign Out\" first".</string>
+    <string name="msg_dbx_repeat_download">Do you wish to repeat database download from dropbox account?</string>
+    <string name="msg_dbx_repeat_upload">Do you wish to repeat database upload to dropbox account?</string>
+    <string name="msg_dbx_login_required">Do you wish to log into dropbox account?</string>
+    <string name="msg_dbx_download_format">Perform database download from dropbox account\n%s?\n\n(This can cause local data loss)</string>
+    <string name="msg_dbx_upload_format">Perform database upload to dropbox account\n%s?\n\n(This can cause remote data loss)</string>
+    <string name="msg_swipe_to_upload">Swipe up to upload to dropbox account</string>
+    <string name="msg_dbx_swipe_to_download">Swipe down to download from dropbox account</string>
+    <string name="msg_dbx_press_to_change">Press to change dropbox account</string>
+    <string name="msg_dbx_press_to_auth">Press to log into dropbox account</string>
 
-    <string name="dropbox_app_name">app_notebook</string>
+    <string name="dbx_api_app_name">app_notebook</string>
+    <string name="dbx_api_app_key">tf3377o8jkshd0v</string>
+    <string name="dbx_api_app_secret">8lhw776coxy2m3o</string>
+    <string name="dbx_api_refresh_lt_token">"K0evLC8UlMgAAAAAAAAAAZS5ZwMMvJBJdvIDacta3bxluhskx6dj6O3qHPm_S1Tj"</string>
 
     <string name="tv_rec_quant_message">%d rec</string>
     <string name="tv_last_rec_ago_prefix">last: </string>
+    <string name="tv_prev_rec_ago_prefix">prev: </string>
+    <string name="tv_ago_prefix">ago: </string>
 
-    <string name="token_refresh_uri">https://api.dropboxapi.com/oauth2/token?refresh_token=%s&amp;grant_type=refresh_token&amp;client_id=%s&amp;client_secret=%s</string>
+    <string name="token_refresh_uri_format">https://api.dropboxapi.com/oauth2/token?refresh_token=%s&amp;grant_type=refresh_token&amp;client_id=%s&amp;client_secret=%s</string>
 
     <string name="dialog_box_yes_bt">YES</string>
     <string name="dialog_box_no_bt">NO</string>
-
-    <string name="dialog_box_msg_dropbox_download">Perform database download from Dropbox account?\n (This can cause local data loss)</string>
-    <string name="dialog_box_msg_dropbox_upload">Perform database upload to Dropbox account?\n (This can cause remote data loss)</string>
+    <string name="dialog_box_ok_bt">OK</string>
 
     <string name="tv_start_date">From: </string>
     <string name="tv_end_date">Till: </string>
@@ -66,7 +83,6 @@
     <string name="tv_total_count">total items:</string>
     <string name="tv_total_value">total value:</string>
     <string name="tv_average_value">average value:</string>
-
 
     <string name="tv_prev_top">prev</string>
     <string name="ic_next_top">next</string>

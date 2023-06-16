@@ -53,7 +53,7 @@ import ua.com.supersonic.android.notebook.adapters.RecordAdapter;
 import ua.com.supersonic.android.notebook.db.DBConstants;
 import ua.com.supersonic.android.notebook.db.DBManager;
 import ua.com.supersonic.android.notebook.utils.Utils;
-import ua.com.supersonic.android.notebook.custom_views.SwipeableConstraintLayout;
+import ua.com.supersonic.android.notebook.custom_views.InterceptConstraintLayout;
 import ua.com.supersonic.android.notebook.custom_views.NonSwipeableViewPager;
 
 public class NotebookRecordsFragment extends Fragment implements View.OnClickListener,
@@ -82,7 +82,7 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
     private RecordAdapter mRecordAdapter;
     private ArrayAdapter<String> mSpinnerAEFAdapter;
 
-    private SwipeableConstraintLayout mRootContainer;
+    private InterceptConstraintLayout mRootContainer;
     private ListView mLvRecords;
     private Spinner mSpinnerAEF;
     private EditText mEtAEFRecord;
@@ -142,7 +142,8 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
                 mIsEditBtPressed = false;
 //                mIsFindBtPressed = false;
 //                DropboxDBSynchronizer.getInstance().performDropboxImportTask();
-                showRecordList(DBManager.getInstance(getContext()).readRecordsWhereKeyEquals(DBConstants.COLUMN_CATEGORY_ID, String.valueOf(mCurCategoryId)));
+                showRecordList(DBManager.getInstance(getContext())
+                        .readRecordsWhereKeyEquals(DBConstants.COLUMN_CATEGORY_ID_JOINED, String.valueOf(mCurCategoryId)));
                 Utils.hideKeyboard(getAppMainActivity());
                 mLvRecords.setVisibility(View.VISIBLE);
 //                mWidgetsContainer.setVisibility(View.INVISIBLE);
@@ -348,7 +349,7 @@ public class NotebookRecordsFragment extends Fragment implements View.OnClickLis
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 //        MainActivity.mainInstance.showToastMessage(String.valueOf(mCurCategoryId));
-        mRootContainer = (SwipeableConstraintLayout) inflater.inflate(R.layout.fragment_categories_records, container, false);
+        mRootContainer = (InterceptConstraintLayout) inflater.inflate(R.layout.fragment_categories_records, container, false);
         init();
         return mRootContainer;
     }

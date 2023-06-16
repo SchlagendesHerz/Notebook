@@ -6,20 +6,9 @@ public class NotebookRecord {
     private int id;
     private int categoryId;
     private Date date;
-
-    @Override
-    public String toString() {
-        return "NotebookRecord{" +
-                "id=" + id +
-                ", categoryId=" + categoryId +
-                ", date=" + date +
-                ", amount=" + amount +
-                ", description='" + description + '\'' +
-                '}';
-    }
-
     private double amount;
     private String description;
+    private Date prevDate;
 
     public double getAmount() {
         return amount;
@@ -31,6 +20,10 @@ public class NotebookRecord {
 
     public int getCategoryId() {
         return categoryId;
+    }
+
+    public void setCategoryId(int category) {
+        this.categoryId = category;
     }
 
     public Date getDate() {
@@ -57,7 +50,11 @@ public class NotebookRecord {
         this.id = id;
     }
 
-    public void setCategoryId(int category) {
-        this.categoryId = category;
+    public Date getPrevDate() {
+        return prevDate;
+    }
+
+    public void setPrevDate(Date prevDate) {
+        this.prevDate = prevDate;
     }
 }

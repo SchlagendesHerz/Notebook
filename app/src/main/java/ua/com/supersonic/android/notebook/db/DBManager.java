@@ -1,10 +1,13 @@
 package ua.com.supersonic.android.notebook.db;
 
+import static ua.com.supersonic.android.notebook.utils.Utils.FormatType.DB_DATE_TIME;
+
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.util.Log;
 
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -17,7 +20,6 @@ import ua.com.supersonic.android.notebook.NotebookRecord;
 import ua.com.supersonic.android.notebook.utils.Utils;
 
 public class DBManager {
-    private static final String DB_DATE_TIME_FORMAT_PATTERN = "yyyy-MM-dd HH:mm:ss";
     private static DBManager sDBManager;
 
     public static DBManager getInstance(Context appContext) {
@@ -48,7 +50,7 @@ public class DBManager {
         for (NotebookRecord record : recordsToAdd) {
             values.put(DBConstants.COLUMN_CATEGORY_ID, record.getCategoryId());
             values.put(DBConstants.COLUMN_RECORD_DATE,
-                    Utils.getDateFormatInstance(Utils.FormatType.DB_DATE_TIME).format(record.getDate()));
+                    Utils.getDateFormatInstance(DB_DATE_TIME).format(record.getDate()));
             values.put(DBConstants.COLUMN_RECORD_AMOUNT, record.getAmount());
             values.put(DBConstants.COLUMN_RECORD_DESCR, record.getDescription());
             mDB.insert(DBConstants.TABLE_RECORDS, null, values);
@@ -160,11 +162,11 @@ public class DBManager {
     }
 
     public List<NotebookRecord> readRecordsWhereDateBetween(int categoryId, Date start, Date end) {
-        DateFormat dateFormat = Utils.getDateFormatInstance(Utils.FormatType.DB_DATE_TIME);
+        DateFormat dateFormat = Utils.getDateFormatInstance(DB_DATE_TIME);
         Cursor cursor = mDB.query(
-                DBConstants.TABLE_RECORDS,   // The table to query
-                null,             // The array of columns to return (pass null to get all)
-                DBConstants.SELECTION_BY_RECORD_DATE_BETWEEN_KEY,              // The columns for the WHERE clause
+                DBConstants.TABLE_RECORDS_JOINED,   // The table to query
+                new String[]{DBConstants.TABLE_RECORDS_JOINED_COLUMNS},             // The array of columns to return (pass null to get all)
+                DBConstants.SELECTION_BY_RECORD_DATE_BETWEEN_KEY_JOINED,              // The columns for the WHERE clause
                 new String[]{String.valueOf(categoryId), dateFormat.format(start), dateFormat.format(end)},          // The values for the WHERE clause
                 null,                   // don't group the rows
                 null,                   // don't filter by row groups
@@ -175,13 +177,13 @@ public class DBManager {
 
     public List<NotebookRecord> readRecordsWhereKeyEquals(String keyName, String equalsString) {
         Cursor cursor = mDB.query(
-                DBConstants.TABLE_RECORDS,   // The table to query
-                null,             // The array of columns to return (pass null to get all)
-                keyName + " = ?",              // The columns for the WHERE clause
-                new String[]{equalsString},          // The values for the WHERE clause
-                null,                   // don't group the rows
-                null,                   // don't filter by row groups
-                null               // The sort order
+                DBConstants.TABLE_RECORDS_JOINED,                                   // The table to query
+                new String[]{DBConstants.TABLE_RECORDS_JOINED_COLUMNS},  // The array of columns to return (pass null to get all)
+                keyName + " = ?",                                           // The columns for the WHERE clause
+                new String[]{equalsString},                                         // The values for the WHERE clause
+                null,                                                       // don't group the rows
+                null,                                                        // don't filter by row groups
+                DBConstants.ORDER_BY_RECORD_DATE_DESC                                                        // The sort order
         );
         return cursorToRecords(cursor);
     }
@@ -197,7 +199,7 @@ public class DBManager {
         ContentValues cv = new ContentValues();
         String recordIdString = String.valueOf(record.getId());
         cv.put(DBConstants.COLUMN_RECORD_DATE,
-                Utils.getDateFormatInstance(Utils.FormatType.DB_DATE_TIME).format(record.getDate()));
+                Utils.getDateFormatInstance(DB_DATE_TIME).format(record.getDate()));
         cv.put(DBConstants.COLUMN_RECORD_AMOUNT, record.getAmount());
         cv.put(DBConstants.COLUMN_RECORD_DESCR, record.getDescription());
         mDB.update(DBConstants.TABLE_RECORDS, cv, DBConstants.SELECTION_BY_RECORD_ID_KEY, new String[]{recordIdString});
@@ -216,7 +218,7 @@ public class DBManager {
             try {
                 newCategory.setLastRecordDate(lastRecordDateString == null
                         ? null
-                        : Utils.getDateFormatInstance(Utils.FormatType.DB_DATE_TIME)
+                        : Utils.getDateFormatInstance(DB_DATE_TIME)
                         .parse(lastRecordDateString));
             } catch (ParseException e) {
                 newCategory.setLastRecordDate(null);
@@ -236,9 +238,18 @@ public class DBManager {
             newRecord.setId(cursor.getInt(cursor.getColumnIndex(DBConstants.COLUMN_RECORD_ID)));
             newRecord.setCategoryId(cursor.getInt(cursor.getColumnIndex(DBConstants.COLUMN_CATEGORY_ID)));
             try {
-                Date date = Utils.getDateFormatInstance(Utils.FormatType.DB_DATE_TIME)
+                Date date = Utils.getDateFormatInstance(DB_DATE_TIME)
                         .parse(cursor.getString(cursor.getColumnIndex(DBConstants.COLUMN_RECORD_DATE)));
+//                Log.d("DROPBOX", "DB DATE = " + cursor.getString(cursor.getColumnIndex(DBConstants.COLUMN_RECORD_DATE)));
+//                Log.d("DROPBOX", "DATE = " + date.getTime());
                 newRecord.setDate(date);
+
+                String dateToParse = cursor.getString(cursor.getColumnIndex(DBConstants.COLUMN_PREV_REC_DATE));
+                if (dateToParse != null) {
+                    date = Utils.getDateFormatInstance(DB_DATE_TIME)
+                            .parse(dateToParse);
+                    newRecord.setPrevDate(date);
+                }
             } catch (ParseException e) {
                 throw new RuntimeException(e);
             }

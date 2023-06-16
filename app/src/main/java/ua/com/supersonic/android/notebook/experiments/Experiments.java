@@ -1,10 +1,6 @@
 package ua.com.supersonic.android.notebook.experiments;
 
-import android.text.*;
-/*
-import android.text.Editable;
-import android.text.SpannableStringBuilder;
-*/
+import static ua.com.supersonic.android.notebook.utils.Utils.FormatType.DEFAULT_DATE_TIME;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -16,16 +12,74 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
 public class Experiments {
-    public static void main(String[] args) throws IOException {
-        TimeZone curTZ = TimeZone.getDefault();
-        System.out.println(curTZ.getOffset(new Date().getTime()));
-        System.out.println(curTZ.getRawOffset());
+    static class A implements Runnable {
+        private C c;
+
+        public A(C c) {
+            this.c = c;
+        }
+
+        @Override
+        public void run() {
+            System.out.println("A is about to pause");
+            c.pause();
+            System.out.println("A is out of pause");
+        }
+    }
+
+    static class B implements Runnable {
+
+        private C c;
+
+        public B(C c) {
+            this.c = c;
+        }
+
+        @Override
+        public void run() {
+            System.out.println("B is about to resume");
+            c.resume();
+            System.out.println("B is after resume");
+        }
+    }
+
+    static class C {
+        synchronized void pause() {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        synchronized void resume() {
+            try {
+                wait(1000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            notify();
+        }
+    }
+
+
+    public static void main(String[] args) throws IOException, ParseException {
+        C c = new C();
+        Thread a = new Thread(new A(c));
+        Thread b = new Thread(new B(c));
+        a.start();
+        b.start();
+//        TimeZone curTZ = TimeZone.getDefault();
+//        System.out.println(curTZ.getOffset(new Date().getTime()));
+//        System.out.println(curTZ.getRawOffset());
 
 
 //        String uriString = "https://www.dropbox.com/s/u2bhfjd6da7uard/1.txt?raw=1";
